@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Đăng ký tài khoản - ChuyenDeTN Shop{% endblock %}
+
+{% block content %}
+<section class="section auth-section">
+    <div class="container">
+        <div class="auth-card">
+            <h1>Tạo tài khoản mới</h1>
+            <p class="auth-subtitle">Đăng ký để lưu giỏ hàng, danh sách yêu thích và thanh toán nhanh hơn.</p>
+
+            {% if form.non_field_errors %}
+                <div class="form-errors">
+                    {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+                </div>
+            {% endif %}
+
+            <form method="post" novalidate>
+                {% csrf_token %}
+                {% for field in form %}
+                    <div class="form-group">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+                        {{ field }}
+                        {% if field.help_text %}<small class="form-help">{{ field.help_text }}</small>{% endif %}
+                        {% for error in field.errors %}<small class="form-error">{{ error }}</small>{% endfor %}
+                    </div>
+                {% endfor %}
+                <button type="submit" class="btn btn-primary btn-block">Đăng ký</button>
+            </form>
+
+            <p class="auth-switch">Đã có tài khoản? <a href="{% url 'accounts:login' %}">Đăng nhập ngay</a></p>
+        </div>
+    </div>
+</section>
+{% endblock %}

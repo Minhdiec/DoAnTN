@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python manage.py makemigrations products)",
+      "Bash(python manage.py migrate products)",
+      "Bash(python -c ' *)",
+      "Bash(python manage.py inspectdb products_category products_product)",
+      "Bash(python manage.py shell -c ' *)",
+      "Bash(PYTHONIOENCODING=utf-8 python manage.py shell -c ' *)"
+    ]
+  }
+}

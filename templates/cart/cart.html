@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% load static humanize %}
+
+{% block title %}Giỏ hàng - ChuyenDeTN Shop{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <div class="section-head">
+            <div>
+                <h2>Giỏ hàng của bạn</h2>
+                <p>{{ cart.total_items }} sản phẩm trong giỏ.</p>
+            </div>
+        </div>
+
+        {% if items %}
+            <div class="cart-layout">
+                <div class="cart-items">
+                    {% for item in items %}
+                        <div class="cart-item">
+                            <a href="{% url 'products:detail' item.product.slug %}" class="cart-item-thumb">
+                                {% if item.product.image %}
+                                    <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
+                                {% else %}
+                                    <span class="product-thumb-placeholder">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+                                    </span>
+                                {% endif %}
+                            </a>
+                            <div class="cart-item-info">
+                                <span class="product-category">{{ item.product.category.name }}</span>
+                                <h3><a href="{% url 'products:detail' item.product.slug %}">{{ item.product.name }}</a></h3>
+                                <span class="cart-item-price">{{ item.product.price|floatformat:0|intcomma }}₫</span>
+                            </div>
+                            <form action="{% url 'cart:update' item.id %}" method="post" class="quantity-stepper cart-item-qty">
+                                {% csrf_token %}
+                                <button type="button" data-qty-decrease aria-label="Giảm số lượng">&minus;</button>
+                                <input type="number" name="quantity" value="{{ item.quantity }}" min="1" max="{{ item.product.stock_quantity }}" data-qty-input>
+                                <button type="button" data-qty-increase aria-label="Tăng số lượng">&plus;</button>
+                                <button type="submit" class="btn btn-ghost btn-small">Cập nhật</button>
+                            </form>
+                            <div class="cart-item-total">{{ item.line_total|floatformat:0|intcomma }}₫</div>
+                            <form action="{% url 'cart:remove' item.id %}" method="post" class="cart-item-remove">
+                                {% csrf_token %}
+                                <button type="submit" class="icon-btn" aria-label="Xóa sản phẩm" title="Xóa khỏi giỏ hàng">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg>
+                                </button>
+                            </form>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div class="cart-summary">
+                    <h3>Tóm tắt đơn hàng</h3>
+                    <div class="cart-summary-row">
+                        <span>Tạm tính ({{ cart.total_items }} sản phẩm)</span>
+                        <strong>{{ cart.total_price|floatformat:0|intcomma }}₫</strong>
+                    </div>
+                    <div class="cart-summary-row cart-summary-total">
+                        <span>Tổng cộng</span>
+                        <strong>{{ cart.total_price|floatformat:0|intcomma }}₫</strong>
+                    </div>
+                    <button type="button" class="btn btn-primary btn-block" disabled title="Tính năng đang phát triển">
+                        Thanh toán
+                    </button>
+                    <p class="cart-summary-note">Tính năng thanh toán đang được phát triển.</p>
+                    <a href="{% url 'products:home' %}#featured-products" class="section-link">&larr; Tiếp tục mua sắm</a>
+                </div>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"></path></svg>
+                <strong>Giỏ hàng đang trống</strong>
+                Hãy <a href="{% url 'products:home' %}#featured-products">khám phá sản phẩm</a> và thêm vào giỏ hàng.
+            </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

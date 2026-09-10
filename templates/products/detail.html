@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static humanize %}
 
-{% block title %}{{ product.name }} - ChuyenDeTN Shop{% endblock %}
+{% block title %}{{ product.name }} - Astraea{% endblock %}
 {% block description %}{{ product.description_intro|truncatechars:160 }}{% endblock %}
 
 {% block content %}
@@ -29,6 +29,12 @@
                         <span class="product-thumb-placeholder">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>
                         </span>
+                    {% endif %}
+                    {% if product_glasses_overlay %}
+                        <button type="button" class="tryon-gallery-trigger" data-tryon-open data-glasses-id="{{ product_glasses_overlay.id }}">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="3.2"></circle><circle cx="18" cy="12" r="3.2"></circle><path d="M9.2 12h5.6"></path><path d="M2.8 12l1-2.5c.3-.8 1-1.3 1.9-1.3"></path><path d="M21.2 12l-1-2.5c-.3-.8-1-1.3-1.9-1.3"></path></svg>
+                            TRY ON
+                        </button>
                     {% endif %}
                 </div>
                 {% if gallery_images or product.image %}
@@ -77,22 +83,27 @@
                     </ul>
                 {% endif %}
 
-                {% if product.is_in_stock %}
-                    <form action="{% url 'cart:add' product.slug %}" method="post" class="product-add-form">
-                        {% csrf_token %}
-                        <div class="quantity-stepper">
-                            <button type="button" data-qty-decrease aria-label="Giảm số lượng">&minus;</button>
-                            <input type="number" name="quantity" value="1" min="1" max="{{ product.stock_quantity }}" data-qty-input>
-                            <button type="button" data-qty-increase aria-label="Tăng số lượng">&plus;</button>
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-block">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"></path></svg>
-                            Thêm vào giỏ hàng
-                        </button>
-                    </form>
-                {% else %}
-                    <button type="button" class="btn btn-ghost btn-block" disabled>Tạm hết hàng</button>
-                {% endif %}
+                <div class="product-actions">
+                    {% if product.is_in_stock %}
+                        <form action="{% url 'cart:add' product.slug %}" method="post" class="product-add-form">
+                            {% csrf_token %}
+                            <div class="quantity-stepper">
+                                <button type="button" data-qty-decrease aria-label="Giảm số lượng">&minus;</button>
+                                <input type="number" name="quantity" value="1" min="1" max="{{ product.stock_quantity }}" data-qty-input>
+                                <button type="button" data-qty-increase aria-label="Tăng số lượng">&plus;</button>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"></path></svg>
+                                Thêm vào giỏ hàng
+                            </button>
+                        </form>
+                    {% else %}
+                        <button type="button" class="btn btn-ghost btn-block" disabled>Tạm hết hàng</button>
+                    {% endif %}
+                    <div class="product-detail-favorite">
+                        {% include "products/_favorite_button.html" %}
+                    </div>
+                </div>
 
                 {% if product.specs %}
                     <div class="product-specs">
@@ -116,6 +127,123 @@
                 {% endif %}
             </div>
         </div>
+    </div>
+</section>
+
+<section class="section section-alt" id="danh-gia">
+    <div class="container">
+        <div class="section-head">
+            <div>
+                <h2>Đánh giá sản phẩm</h2>
+                <p>{{ rating_total }} đánh giá cho {{ product.name }}.</p>
+            </div>
+        </div>
+
+        {% if can_review %}
+            {% comment %}
+                Ô nhập đánh giá CHỈ hiện khi user đã mua sản phẩm này VÀ đơn đã
+                giao thành công VÀ chưa đánh giá lần nào (tính ở products/views.py).
+            {% endcomment %}
+            <div class="review-form-inline">
+                <h3>Đánh giá sản phẩm này</h3>
+                <form method="post" action="{% url 'reviews:create' review_order_item.id %}" enctype="multipart/form-data" novalidate>
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label>Chất lượng sản phẩm</label>
+                        <div class="star-input" data-star-input>
+                            {% for n in "12345" %}
+                                <button type="button" class="star-input-btn" data-star-value="{{ forloop.counter }}" aria-label="{{ forloop.counter }} sao">☆</button>
+                            {% endfor %}
+                        </div>
+                        {{ review_form.rating }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ review_form.content.id_for_label }}">{{ review_form.content.label }}</label>
+                        {{ review_form.content }}
+                    </div>
+                    <div class="form-group">
+                        <label for="media_files">Ảnh/video (không bắt buộc, tối đa 5 file)</label>
+                        <input type="file" name="media_files" id="media_files" multiple accept="image/*,video/*">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-checkbox">
+                            {{ review_form.is_anonymous }}
+                            {{ review_form.is_anonymous.label }}
+                        </label>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Gửi đánh giá</button>
+                </form>
+            </div>
+        {% endif %}
+
+        {% if rating_total %}
+            <div class="review-summary">
+                <div class="review-score">
+                    <strong>{{ rating_average }}</strong>
+                    <div class="review-stars">
+                        {% for n in "12345" %}<span class="star{% if forloop.counter <= rating_average_rounded %} is-filled{% endif %}">{% if forloop.counter <= rating_average_rounded %}★{% else %}☆{% endif %}</span>{% endfor %}
+                    </div>
+                    <span>{{ rating_total }} đánh giá</span>
+                </div>
+                <div class="review-distribution">
+                    {% for row in rating_distribution %}
+                        <div class="review-distribution-row">
+                            <span>{{ row.star }}★</span>
+                            <div class="review-bar"><div class="review-bar-fill" style="width: {{ row.percent }}%;"></div></div>
+                            <span>{{ row.count }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+                {% if sentiment_stats %}
+                    <div class="review-sentiment">
+                        <span class="sentiment-chip sentiment-pos">Tích cực {{ sentiment_stats.positive_percent }}%</span>
+                        <span class="sentiment-chip sentiment-neu">Trung lập {{ sentiment_stats.neutral_percent }}%</span>
+                        <span class="sentiment-chip sentiment-neg">Tiêu cực {{ sentiment_stats.negative_percent }}%</span>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="review-list">
+                {% for review in reviews %}
+                    <div class="review-item">
+                        <div class="review-item-head">
+                            <strong>{{ review.display_name }}</strong>
+                            <span class="review-stars">
+                                {% for n in "12345" %}<span class="star{% if forloop.counter <= review.rating %} is-filled{% endif %}">{% if forloop.counter <= review.rating %}★{% else %}☆{% endif %}</span>{% endfor %}
+                            </span>
+                            {% comment %}
+                                Nhãn cảm xúc hiện công khai NGAY TRÊN từng bình luận (khác với
+                                % tổng hợp cả sản phẩm ở khối thống kê phía trên).
+                            {% endcomment %}
+                            <span class="sentiment-chip sentiment-{{ review.sentiment|lower }}">
+                                {{ review.get_sentiment_display }}
+                            </span>
+                            <span class="review-date">{{ review.created_at|date:"d/m/Y" }}</span>
+                        </div>
+                        <p class="review-content">{{ review.content }}</p>
+                        {% if review.media.all %}
+                            <div class="review-media">
+                                {% for item in review.media.all %}
+                                    {% if item.media_type == "image" %}
+                                        <a href="{{ item.file.url }}" target="_blank" rel="noopener" class="review-media-thumb">
+                                            <img src="{{ item.file.url }}" alt="Ảnh đính kèm đánh giá">
+                                        </a>
+                                    {% else %}
+                                        <video src="{{ item.file.url }}" controls class="review-media-video"></video>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2l2.9 6.3 6.9.9-5 4.8 1.2 6.9-6-3.3-6 3.3 1.2-6.9-5-4.8 6.9-.9z"></path></svg>
+                <strong>Chưa có đánh giá nào</strong>
+                Hãy là người đầu tiên đánh giá sản phẩm này sau khi mua hàng.
+            </div>
+        {% endif %}
     </div>
 </section>
 
@@ -162,4 +290,50 @@
 </section>
 {% endif %}
 
+{% if product_glasses_overlay %}
+<div class="tryon-modal" id="tryon-modal" hidden>
+    <div class="tryon-modal-backdrop" data-tryon-close></div>
+    <div class="tryon-modal-panel" role="dialog" aria-modal="true" aria-labelledby="tryon-modal-title">
+        <div class="tryon-modal-header">
+            <h2 id="tryon-modal-title">Thử kính ảo - {{ product.name }}</h2>
+            <button type="button" class="tryon-close" data-tryon-close aria-label="Đóng">&times;</button>
+        </div>
+        <div class="tryon-modal-body">
+            <div class="tryon-camera">
+                <video id="tryon-video" autoplay playsinline muted hidden></video>
+                <canvas id="tryon-canvas-capture" hidden></canvas>
+                <img id="tryon-output" alt="Hình ảnh thử kính ảo qua webcam" hidden>
+                <div class="tryon-placeholder" id="tryon-placeholder">
+                    <p id="tryon-placeholder-text">Đang mở camera…</p>
+                    <button type="button" class="btn btn-primary" id="tryon-retry" hidden>Thử lại</button>
+                </div>
+                <div class="tryon-status" id="tryon-status" hidden></div>
+            </div>
+            <div class="tryon-sidebar">
+                <div class="tryon-gallery">
+                    <h3>Chọn mẫu kính</h3>
+                    <div class="tryon-gallery-list">
+                        {% for g in tryon_gallery %}
+                            <button type="button" class="tryon-gallery-item{% if g.id == product_glasses_overlay.id %} is-active{% endif %}" data-glasses-id="{{ g.id }}">
+                                <img src="{{ g.image.url }}" alt="{{ g.product.name }}">
+                                <span>{{ g.product.name }}</span>
+                            </button>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+    {% if product_glasses_overlay %}
+        <script src="{% static 'js/tryon.js' %}?v=2"></script>
+    {% endif %}
+    {% if can_review %}
+        <script src="{% static 'js/review-form.js' %}?v=2"></script>
+    {% endif %}
 {% endblock %}

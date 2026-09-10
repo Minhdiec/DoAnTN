@@ -1,0 +1,49 @@
+HƯỚNG DẪN CHẠY ĐỒ ÁN (Django + MySQL/XAMPP)
+=============================================
+
+Yêu cầu trước khi chạy:
+- Đã bật MySQL trong XAMPP Control Panel (hoặc chạy C:\xampp\mysql_start.bat)
+- Database "chuyendetn_db" đã tồn tại trong MySQL
+- Đã tạo file .env (copy từ .env.example) ở cùng cấp với manage.py
+
+1) Mở PowerShell tại thư mục dự án:
+cd D:\DoAnTN
+
+2) Kích hoạt virtual environment (đã có sẵn trong .venv):
+.venv\Scripts\activate
+
+3) (Chỉ cần chạy khi models/database thay đổi) Tạo và áp migration:
+python manage.py makemigrations
+python manage.py migrate
+
+4) Chạy server phát triển:
+python manage.py runserver
+
+   Mặc định server chạy tại: http://127.0.0.1:8000/
+   (Có thể đổi cổng: python manage.py runserver 127.0.0.1:8080)
+
+5) Mở trình duyệt và truy cập:
+http://127.0.0.1:8000/
+
+Lệnh phụ hữu ích:
+- Tạo tài khoản admin (superuser): python manage.py createsuperuser
+- Trang quản trị: http://127.0.0.1:8000/admin/
+- Thoát venv: deactivate
+
+Tài khoản đăng nhập:
+- Admin (superuser):
+  Username: admin
+  Email: adminbranch1@gmail.com
+  Password: admin123
+  Đăng nhập tại: http://127.0.0.1:8000/admin/
+
+- User thường:
+  Username: Minh
+  Email: mhong238@gmail.com
+  Password: user123
+
+Ghi chú:
+- Dự án dùng Django Channels + Daphne (cho module thử kính ảo qua webcam),
+  nên "python manage.py runserver" sẽ tự chạy qua Daphne (ASGI) thay vì
+  server WSGI mặc định - không cần lệnh nào khác.
+- Nếu chưa cài thư viện: pip install -r requirements.txt

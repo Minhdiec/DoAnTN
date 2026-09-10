@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Sản phẩm yêu thích - Astraea{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <div class="section-head">
+            <div>
+                <h2>Sản phẩm yêu thích</h2>
+                <p>{{ products|length }} sản phẩm bạn đã lưu lại.</p>
+            </div>
+        </div>
+
+        {% if products %}
+            <div class="product-grid">
+                {% for product in products %}
+                    {% include "products/_product_card.html" %}
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"></path></svg>
+                <strong>Chưa có sản phẩm yêu thích nào</strong>
+                Hãy <a href="{% url 'products:home' %}#featured-products">khám phá sản phẩm</a> và bấm biểu tượng trái tim để lưu lại.
+            </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

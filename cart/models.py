@@ -1,11 +1,17 @@
 """
 Model cho app "cart".
 
-Giống Wishlist/Wallet, mỗi User sở hữu đúng một Cart (quan hệ OneToOneField -
+Giống Favorite/Wallet, mỗi User sở hữu đúng một Cart (quan hệ OneToOneField -
 Một-Một). Bên trong Cart chứa nhiều CartItem, mỗi CartItem gắn với một
 Product cụ thể kèm số lượng - đây là quan hệ Một-Nhiều giữa Cart và CartItem,
 và quan hệ Một-Nhiều giữa Product và CartItem (một sản phẩm có thể nằm trong
 giỏ hàng của nhiều người dùng khác nhau, ở nhiều CartItem khác nhau).
+
+GIỎ HÀNG KHÁCH VÃNG LAI: "user" được phép để trống (null=True) - khi đó giỏ
+hàng thuộc về một PHIÊN LÀM VIỆC (session) thay vì một tài khoản, nhận diện
+qua "session_key" (khóa phiên do Django tự sinh, xem cart/views.py::_get_cart).
+Nhờ vậy khách chưa đăng nhập vẫn thêm/sửa/xóa giỏ hàng bình thường, chỉ bắt
+buộc đăng nhập ở bước thanh toán cuối cùng (orders/views.py::checkout).
 """
 
 from decimal import Decimal
@@ -19,15 +25,26 @@ from products.models import Product
 
 class Cart(models.Model):
     """
-    Giỏ hàng của một người dùng.
+    Giỏ hàng của một người dùng, hoặc của một khách vãng lai (theo session).
     """
 
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="cart",
+        null=True,
+        blank=True,
         verbose_name="Người dùng",
-        help_text="Mỗi người dùng chỉ có đúng một giỏ hàng.",
+        help_text="Để trống nếu đây là giỏ hàng của khách vãng lai (chưa đăng nhập).",
+    )
+
+    session_key = models.CharField(
+        max_length=40,
+        null=True,
+        blank=True,
+        unique=True,
+        verbose_name="Khóa phiên (khách vãng lai)",
+        help_text="Chỉ có giá trị khi giỏ hàng thuộc về khách chưa đăng nhập.",
     )
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Ngày tạo")
@@ -37,7 +54,16 @@ class Cart(models.Model):
         verbose_name_plural = "Giỏ hàng"
 
     def __str__(self):
-        return f"Giỏ hàng của {self.user.username}"
+        return f"Giỏ hàng của {self.user.username}" if self.user else f"Giỏ hàng khách vãng lai ({self.session_key})"
+
+    def merge_from(self, other_cart):
+        # Gộp toàn bộ dòng sản phẩm của "other_cart" (giỏ khách vãng lai)
+        # vào giỏ này (giỏ của tài khoản vừa đăng nhập), rồi xóa giỏ kia đi -
+        # dùng add_product() để cộng dồn đúng số lượng nếu sản phẩm đã có
+        # sẵn trong cả hai giỏ, và vẫn tôn trọng giới hạn tồn kho.
+        for item in other_cart.items.select_related("product"):
+            self.add_product(item.product, quantity=item.quantity)
+        other_cart.delete()
 
     def add_product(self, product, quantity=1):
         # Nếu sản phẩm đã có sẵn trong giỏ, cộng dồn số lượng thay vì tạo

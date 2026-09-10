@@ -8,8 +8,14 @@ from .models import Cart
 
 
 def cart_summary(request):
-    if not request.user.is_authenticated:
-        return {"cart_item_count": 0}
+    if request.user.is_authenticated:
+        cart = Cart.objects.filter(user=request.user).first()
+    else:
+        # Khách vãng lai: đọc giỏ hàng gắn với session hiện tại (nếu session
+        # này đã từng ghi gì đó, tức là đã từng thêm sản phẩm - xem
+        # cart/views.py::_get_cart). Chưa có session_key nghĩa là chắc chắn
+        # chưa thêm gì, khỏi cần truy vấn.
+        session_key = request.session.session_key
+        cart = Cart.objects.filter(session_key=session_key, user=None).first() if session_key else None
 
-    cart = Cart.objects.filter(user=request.user).first()
     return {"cart_item_count": cart.total_items if cart else 0}

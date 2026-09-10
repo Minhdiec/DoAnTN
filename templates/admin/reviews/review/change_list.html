@@ -1,0 +1,39 @@
+{% extends "admin/change_list.html" %}
+
+{% block object-tools %}
+    {{ block.super }}
+    {% if sentiment_stats and sentiment_stats.total %}
+        <div style="margin: 0 0 16px; padding: 14px 18px; background: #fff; border: 1px solid #d9dee3; border-radius: 6px;">
+            <strong>Thống kê bình luận:</strong>
+            <span style="color:#065f46; font-weight:700;">Tích cực {{ sentiment_stats.positive }} ({{ sentiment_stats.positive_percent }}%)</span>
+            ·
+            <span style="color:#92400e; font-weight:700;">Trung lập {{ sentiment_stats.neutral }} ({{ sentiment_stats.neutral_percent }}%)</span>
+            ·
+            <span style="color:#991b1b; font-weight:700;">Tiêu cực {{ sentiment_stats.negative }} ({{ sentiment_stats.negative_percent }}%)</span>
+        </div>
+    {% endif %}
+
+    {% if product_breakdown %}
+        <div style="margin: 0 0 16px; padding: 14px 18px; background: #fff; border: 1px solid #d9dee3; border-radius: 6px;">
+            <strong>Biểu đồ cảm xúc theo từng sản phẩm</strong>
+            <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 10px;">
+                {% for row in product_breakdown %}
+                    <div style="display: grid; grid-template-columns: 160px 1fr 90px; align-items: center; gap: 12px; font-size: 13px;">
+                        <span title="{{ row.name }}" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ row.name }}</span>
+                        <div style="display: flex; height: 16px; border-radius: 4px; overflow: hidden; background: #eef1f4;">
+                            {% if row.positive_percent %}<div style="width: {{ row.positive_percent }}%; background: #34d399;" title="Tích cực {{ row.positive_percent }}%"></div>{% endif %}
+                            {% if row.neutral_percent %}<div style="width: {{ row.neutral_percent }}%; background: #fbbf24;" title="Trung lập {{ row.neutral_percent }}%"></div>{% endif %}
+                            {% if row.negative_percent %}<div style="width: {{ row.negative_percent }}%; background: #f87171;" title="Tiêu cực {{ row.negative_percent }}%"></div>{% endif %}
+                        </div>
+                        <span style="color:#6b7280;">{{ row.total }} đánh giá</span>
+                    </div>
+                {% endfor %}
+            </div>
+            <div style="margin-top: 10px; font-size: 12px; color:#6b7280;">
+                <span style="color:#059669;">■</span> Tích cực &nbsp;
+                <span style="color:#d97706;">■</span> Trung lập &nbsp;
+                <span style="color:#dc2626;">■</span> Tiêu cực
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

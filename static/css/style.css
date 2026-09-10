@@ -5,17 +5,18 @@
    ========================================================================== */
 
 :root {
-    --color-primary: #0f766e;
-    --color-primary-dark: #0b5750;
-    --color-primary-light: #ccfbf1;
-    --color-accent: #f97316;
-    --color-accent-dark: #ea580c;
+    /* Tông màu chủ đạo: xanh navy đậm + trắng (thương hiệu Astraea). */
+    --color-primary: #0b1e3f;
+    --color-primary-dark: #060f22;
+    --color-primary-light: #e4e9f5;
+    --color-accent: #1d4ed8;
+    --color-accent-dark: #1739a6;
 
-    --color-text: #1f2937;
+    --color-text: #111827;
     --color-text-muted: #6b7280;
-    --color-bg: #f5f7fb;
+    --color-bg: #f4f6fb;
     --color-surface: #ffffff;
-    --color-border: #e5e7eb;
+    --color-border: #dde3ee;
 
     --radius-sm: 8px;
     --radius-md: 14px;
@@ -90,6 +91,20 @@ button {
 
 .btn:hover {
     transform: translateY(-1px);
+}
+
+/* Icon SVG bên trong nút BẮT BUỘC phải có kích thước rõ ràng ở đây - nếu
+   không, trình duyệt dùng kích thước mặc định cho phần tử SVG "thay thế"
+   (replaced element) không có kích thước nội tại rõ ràng, THƯỜNG LÀ 300x150px
+   - khiến cả nút phồng to bất thường theo icon (đúng lỗi "nút thêm vào giỏ
+   hàng bị lỗi hiển thị" đã gặp ở nút "Thêm vào giỏ hàng" trang chi tiết sản
+   phẩm, xem BUG.ipynb). Toàn bộ icon khác trong site đều tự khai kích thước
+   riêng (.icon-link svg, .icon-btn svg...) NGOẠI TRỪ .btn - khai chung ở đây
+   để phòng lặp lại lỗi này ở bất kỳ nút .btn nào khác sau này. */
+.btn svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
 }
 
 .btn-primary {
@@ -193,7 +208,7 @@ button {
     width: 38px;
     height: 38px;
     border-radius: 10px;
-    background: linear-gradient(135deg, var(--color-primary), #14b8a6);
+    background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
     color: #fff;
     font-weight: 800;
     font-size: 16px;
@@ -234,6 +249,10 @@ button {
 
 .search-form button:hover {
     background: var(--color-primary-dark);
+}
+
+.search-form-page {
+    margin: 0 0 28px;
 }
 
 .header-actions {
@@ -298,6 +317,11 @@ button {
     font-size: 14px;
     font-weight: 600;
     color: var(--color-text);
+    text-decoration: none;
+}
+
+.user-chip:hover {
+    color: var(--color-accent);
 }
 
 .user-avatar {
@@ -408,36 +432,25 @@ button {
 /* ---------- Hero ---------- */
 
 .hero {
-    background: linear-gradient(120deg, var(--color-primary-dark), var(--color-primary) 60%, #14b8a6);
+    /* Ảnh nền thật (static/img/hero-bg.jpg) + lớp phủ gradient navy đậm để
+       chữ trắng luôn đọc rõ, dù ảnh gốc sáng màu (biển/trời). */
+    background-image: linear-gradient(120deg, rgba(6, 15, 34, 0.92), rgba(6, 15, 34, 0.55) 55%, rgba(6, 15, 34, 0.8)), url(../img/hero-bg.jpg);
+    background-size: cover;
+    background-position: center;
     color: #fff;
     overflow: hidden;
     position: relative;
 }
 
 .hero .container {
-    display: flex;
-    align-items: center;
-    gap: 48px;
-    padding-top: 64px;
-    padding-bottom: 64px;
+    padding-top: 96px;
+    padding-bottom: 96px;
     position: relative;
     z-index: 1;
 }
 
 .hero-copy {
-    flex: 1;
-    min-width: 0;
-}
-
-.hero-eyebrow {
-    display: inline-block;
-    background: rgba(255, 255, 255, 0.15);
-    padding: 6px 14px;
-    border-radius: 999px;
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    margin-bottom: 18px;
+    max-width: 560px;
 }
 
 .hero h1 {
@@ -448,13 +461,13 @@ button {
 }
 
 .hero h1 span {
-    color: #fed7aa;
+    color: #9dc0ff;
 }
 
 .hero p {
     font-size: 17px;
     max-width: 480px;
-    color: rgba(255, 255, 255, 0.9);
+    color: rgba(255, 255, 255, 0.92);
     margin: 0 0 28px;
 }
 
@@ -462,131 +475,6 @@ button {
     display: flex;
     gap: 14px;
     flex-wrap: wrap;
-}
-
-.hero-stats {
-    display: flex;
-    gap: 32px;
-    margin-top: 40px;
-    flex-wrap: wrap;
-}
-
-.hero-stats div strong {
-    display: block;
-    font-size: 24px;
-    font-weight: 800;
-}
-
-.hero-stats div span {
-    font-size: 13px;
-    color: rgba(255, 255, 255, 0.8);
-}
-
-.hero-visual {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 0;
-    position: relative;
-}
-
-.hero-card-stack {
-    position: relative;
-    width: 100%;
-    max-width: 340px;
-    aspect-ratio: 1 / 1;
-}
-
-.hero-blob {
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, 0.12);
-    border-radius: 42% 58% 65% 35% / 45% 40% 60% 55%;
-}
-
-.hero-float-card {
-    position: absolute;
-    background: #fff;
-    color: var(--color-text);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-lg);
-    padding: 14px 16px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 13px;
-    font-weight: 700;
-}
-
-.hero-float-card svg {
-    width: 20px;
-    height: 20px;
-    color: var(--color-primary);
-    flex-shrink: 0;
-}
-
-.hero-float-card.card-1 {
-    top: 8%;
-    left: 4%;
-}
-
-.hero-float-card.card-2 {
-    bottom: 12%;
-    right: 2%;
-}
-
-.hero-float-card.card-3 {
-    top: 44%;
-    right: 12%;
-}
-
-/* ---------- Trust badges ---------- */
-
-.trust-strip {
-    background: var(--color-surface);
-    border-bottom: 1px solid var(--color-border);
-}
-
-.trust-strip .container {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 24px;
-    padding-top: 28px;
-    padding-bottom: 28px;
-}
-
-.trust-item {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-}
-
-.trust-item .trust-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: var(--radius-sm);
-    background: var(--color-primary-light);
-    color: var(--color-primary-dark);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.trust-icon svg {
-    width: 22px;
-    height: 22px;
-}
-
-.trust-item strong {
-    display: block;
-    font-size: 14px;
-}
-
-.trust-item span {
-    font-size: 12.5px;
-    color: var(--color-text-muted);
 }
 
 /* ---------- Sections ---------- */
@@ -637,7 +525,11 @@ button {
 
 .category-grid {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    /* auto-fit + minmax thay vì cố định 6 cột: khi ít danh mục (ví dụ mới có
+       2), các thẻ tự co gọn lại thành cụm thay vì dàn ra để lại nhiều cột
+       trống trải nhìn thiếu cân đối - tự thích ứng luôn theo mọi kích thước
+       màn hình, không cần khai lại grid-template-columns ở từng breakpoint. */
+    grid-template-columns: repeat(auto-fit, minmax(140px, 180px));
     gap: 16px;
 }
 
@@ -678,13 +570,24 @@ button {
     height: 52px;
     margin: 0 auto 12px;
     border-radius: 999px;
-    background: linear-gradient(135deg, var(--color-primary-light), #99f6e4);
+    background: linear-gradient(135deg, var(--color-primary-light), #a9c3f5);
     color: var(--color-primary-dark);
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 800;
     font-size: 18px;
+    overflow: hidden;
+}
+
+.category-avatar-photo {
+    background: var(--color-bg);
+}
+
+.category-avatar-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .category-card span {
@@ -737,6 +640,26 @@ button {
     box-shadow: var(--shadow-sm);
 }
 
+.price-filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--color-text-muted);
+}
+
+.price-filter select {
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--color-primary-dark);
+    cursor: pointer;
+}
+
 .active-filter-chip {
     display: inline-flex;
     align-items: center;
@@ -747,6 +670,16 @@ button {
     font-weight: 700;
     padding: 8px 8px 8px 16px;
     border-radius: 999px;
+}
+
+/* [hidden] PHẢI khai báo riêng (đặc tả cao hơn ".active-filter-chip" vì
+   cùng là 1 class selector, luật nào đứng SAU trong file thắng) để thắng
+   được rule "display: inline-flex" ở trên - nếu không, thuộc tính HTML
+   "hidden" (chỉ hoạt động nhờ "[hidden]{display:none}" mặc định của trình
+   duyệt) sẽ bị ghi đè và chip "Dáng kính: ..." luôn hiển thị dù chưa lọc gì.
+   Cùng nguyên nhân đã gặp với ".tryon-modal[hidden]"/".payment-modal[hidden]". */
+.active-filter-chip[hidden] {
+    display: none;
 }
 
 .active-filter-chip button {
@@ -789,6 +722,17 @@ button {
     box-shadow: var(--shadow-md);
 }
 
+.product-thumb-wrap {
+    position: relative;
+}
+
+.product-thumb-favorite {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 2;
+}
+
 .product-thumb {
     aspect-ratio: 1 / 1;
     background: #f1f5f9;
@@ -819,6 +763,57 @@ button {
 .product-thumb-placeholder svg {
     width: 48px;
     height: 48px;
+}
+
+/* ---------- Nút yêu thích (trái tim) ---------- */
+
+.favorite-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--color-text-muted);
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.favorite-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.favorite-btn:hover {
+    color: #e11d48;
+    transform: scale(1.08);
+}
+
+.favorite-btn.is-active {
+    color: #e11d48;
+    border-color: #e11d48;
+}
+
+.product-actions {
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 32px;
+}
+
+.product-actions > .product-add-form,
+.product-actions > .btn-block {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+.product-detail-favorite .favorite-btn {
+    width: 100%;
+    height: 100%;
+    min-width: 52px;
 }
 
 .product-badge {
@@ -942,7 +937,7 @@ button {
 /* ---------- Newsletter CTA ---------- */
 
 .newsletter {
-    background: linear-gradient(120deg, #0b5750, #0f766e);
+    background: linear-gradient(120deg, var(--color-primary-dark), var(--color-primary));
     color: #fff;
     border-radius: var(--radius-lg);
     margin: 0 24px;
@@ -1060,16 +1055,8 @@ button {
 /* ---------- Responsive ---------- */
 
 @media (max-width: 1024px) {
-    .category-grid {
-        grid-template-columns: repeat(4, 1fr);
-    }
-
     .product-grid {
         grid-template-columns: repeat(3, 1fr);
-    }
-
-    .trust-strip .container {
-        grid-template-columns: repeat(2, 1fr);
     }
 
     .footer-grid {
@@ -1082,6 +1069,13 @@ button {
         display: none;
     }
 
+    /* Form tìm kiếm RIÊNG ở trang kết quả tìm kiếm (không phải ô tìm kiếm
+       trên header) vẫn phải hiện ở mọi kích thước màn hình - rule trên chỉ
+       nhằm ẩn ô tìm kiếm trên header cho màn hình nhỏ để nhường chỗ. */
+    .search-form.search-form-page {
+        display: flex;
+    }
+
     .menu-toggle {
         display: inline-flex;
     }
@@ -1091,10 +1085,9 @@ button {
     }
 
     .hero .container {
-        flex-direction: column;
         text-align: center;
-        padding-top: 48px;
-        padding-bottom: 40px;
+        padding-top: 56px;
+        padding-bottom: 48px;
     }
 
     .hero p {
@@ -1106,16 +1099,8 @@ button {
         justify-content: center;
     }
 
-    .hero-stats {
-        justify-content: center;
-    }
-
     .hero h1 {
         font-size: 32px;
-    }
-
-    .hero-visual {
-        margin-top: 12px;
     }
 
     .category-nav {
@@ -1139,16 +1124,8 @@ button {
 }
 
 @media (max-width: 640px) {
-    .category-grid {
-        grid-template-columns: repeat(3, 1fr);
-    }
-
     .product-grid {
         grid-template-columns: repeat(2, 1fr);
-    }
-
-    .trust-strip .container {
-        grid-template-columns: 1fr;
     }
 
     .footer-grid {
@@ -1197,6 +1174,27 @@ button {
     margin: 0 0 24px;
     color: var(--color-text-muted);
     font-size: 14px;
+}
+
+.profile-avatar-current {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.user-avatar-large {
+    width: 56px;
+    height: 56px;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.profile-avatar-current strong {
+    display: block;
+    font-size: 15px;
 }
 
 .form-group {
@@ -1300,10 +1298,40 @@ button {
 }
 
 .product-gallery-main {
+    position: relative;
     aspect-ratio: 1 / 1;
     background: #f1f5f9;
     border-radius: var(--radius-lg);
     overflow: hidden;
+}
+
+/* Nut "Thu kinh ao" - noi tren goc anh san pham chinh (yeu cau: nam ben
+   canh anh san pham, khong nam duoi cot thong tin/gia tien). */
+.tryon-gallery-trigger {
+    position: absolute;
+    right: 14px;
+    bottom: 14px;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.78);
+    color: #fff;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: var(--shadow-md);
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.tryon-gallery-trigger:hover {
+    background: var(--color-primary-dark);
+    transform: translateY(-1px);
 }
 
 .product-gallery-main img {
@@ -1415,7 +1443,6 @@ button {
 .product-add-form {
     display: flex;
     gap: 12px;
-    margin-bottom: 32px;
 }
 
 .quantity-stepper {
@@ -1502,6 +1529,214 @@ button {
     font-size: 13.5px;
     line-height: 1.8;
     margin: 0;
+}
+
+/* ==========================================================================
+   Module thử kính ảo (tryon) - xem CLAUDE_PROGRESS.md mục 24/25.
+   ========================================================================== */
+
+.tryon-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+/* QUAN TRONG: selector [hidden] o day PHAI dung de "de len tren" rule
+   ".tryon-modal { display:flex }" o ngay tren - neu khong, thuoc tinh HTML
+   "hidden" (JS dang dung modal.hidden = true/false de an/hien) se BI VO
+   HIEU HOA, vi CSS cua author (file nay) luon thang CSS mac dinh cua trinh
+   duyet ([hidden]{display:none} trong UA stylesheet) o cung do quan trong,
+   BAT KE do dac ta (specificity) the nao - day la loi thuc te da xay ra
+   (mo dau da display:flex khong dieu kien, khien modal HIEN SAN tu luc tai
+   trang, che het giao dien - dung nhu bao cao "css loi"). ".tryon-modal[hidden]"
+   co do dac ta CAO HON ".tryon-modal" thuong (them 1 attribute selector) nen
+   se thang duoc rule display:flex o tren khi co thuoc tinh hidden. */
+.tryon-modal[hidden] {
+    display: none;
+}
+
+.tryon-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.6);
+}
+
+.tryon-modal-panel {
+    position: relative;
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    width: 100%;
+    max-width: 920px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+}
+
+.tryon-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.tryon-modal-header h2 {
+    margin: 0;
+    font-size: 19px;
+}
+
+.tryon-close {
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    border: none;
+    background: var(--color-bg);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--color-text-muted);
+}
+
+.tryon-close:hover {
+    background: var(--color-primary-light);
+    color: var(--color-primary-dark);
+}
+
+.tryon-modal-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 260px;
+    gap: 20px;
+    padding: 20px 24px 24px;
+}
+
+.tryon-camera {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    background: #111827;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.tryon-camera video,
+.tryon-camera img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Video thô lấy từ webcam KHÔNG được server lật ngang (chỉ khung hình đã xử
+   lý trả về mới được lật - xem tryon/consumers.py) - tự lật bằng CSS ở đây
+   để khoảng thời gian chờ khung xử lý đầu tiên cũng có cảm giác soi gương
+   nhất quán với ảnh AR sau đó, không bị "giật hướng" khi ảnh đầu tiên về. */
+.tryon-camera video {
+    transform: scaleX(-1);
+}
+
+.tryon-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    color: #e5e7eb;
+    text-align: center;
+    padding: 24px;
+}
+
+/* Giong het ly do can ".tryon-modal[hidden]" o tren: thuoc tinh HTML "hidden"
+   chi hoat dong nho rule mac dinh cua trinh duyet "[hidden]{display:none}"
+   nam trong UA stylesheet - CSS cua chinh du an (author stylesheet) luon
+   thang UA stylesheet o cung muc do quan trong, bat ke do dac ta. Rule
+   ".tryon-placeholder{display:flex}" o tren khien JS gan "placeholder.hidden
+   = true" khong co tac dung thi giac gi ca (da xac nhan bang debug-mode:
+   getComputedStyle luon tra ve "flex" du thuoc tinh hidden da duoc gan) -
+   video/anh da xu ly van chay dung ben duoi, chi la bi khung nay de len tren
+   mai mai. Them 1 selector do dac ta CAO HON de thang duoc rule display:flex. */
+.tryon-placeholder[hidden] {
+    display: none;
+}
+
+.tryon-status {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    background: rgba(15, 23, 42, 0.75);
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 13.5px;
+    text-align: center;
+}
+
+.tryon-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+}
+
+.tryon-gallery h3 {
+    font-size: 14px;
+    margin: 0 0 10px;
+}
+
+.tryon-gallery-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 260px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.tryon-gallery-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.tryon-gallery-item:hover {
+    border-color: var(--color-primary);
+}
+
+.tryon-gallery-item.is-active {
+    border-color: var(--color-primary);
+    background: var(--color-primary-light);
+}
+
+.tryon-gallery-item img {
+    width: 48px;
+    height: 36px;
+    object-fit: contain;
+    background: #f1f5f9;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+
+.tryon-gallery-item span {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+@media (max-width: 640px) {
+    .tryon-modal-body {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* ==========================================================================
@@ -1675,4 +1910,389 @@ button {
     .product-gallery-thumbs {
         grid-template-columns: repeat(4, 1fr);
     }
+}
+
+/* ---------- Đơn hàng của tôi ---------- */
+
+.order-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.order-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+}
+
+.order-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 14px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.order-date {
+    color: var(--color-text-muted);
+    font-size: 13px;
+    margin-left: 10px;
+}
+
+.order-status {
+    background: var(--color-primary-light);
+    color: var(--color-primary-dark);
+    font-size: 12.5px;
+    font-weight: 700;
+    padding: 5px 12px;
+    border-radius: 999px;
+}
+
+.order-item {
+    grid-template-columns: 84px minmax(0, 1fr) auto auto;
+}
+
+.review-badge {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--color-primary-dark);
+    background: var(--color-primary-light);
+    padding: 6px 12px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.order-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--color-border);
+    font-size: 14px;
+}
+
+.order-card-footer > div {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.order-card-footer strong {
+    font-size: 18px;
+    color: var(--color-accent-dark);
+}
+
+.order-status-cancelled {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+/* ---------- Đánh giá sản phẩm (trang chi tiết) ---------- */
+
+.review-summary {
+    display: grid;
+    grid-template-columns: 180px 1fr auto;
+    gap: 32px;
+    align-items: center;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.review-score {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    text-align: center;
+}
+
+.review-score strong {
+    font-size: 36px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.review-score > span {
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.review-stars {
+    color: var(--color-border);
+    font-size: 15px;
+    letter-spacing: 1px;
+}
+
+.review-stars .star.is-filled {
+    color: var(--color-accent);
+}
+
+.review-distribution {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.review-distribution-row {
+    display: grid;
+    grid-template-columns: 26px 1fr 28px;
+    align-items: center;
+    gap: 10px;
+    font-size: 12.5px;
+    color: var(--color-text-muted);
+}
+
+.review-bar {
+    height: 8px;
+    background: var(--color-bg);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.review-bar-fill {
+    height: 100%;
+    background: var(--color-accent);
+    border-radius: 999px;
+}
+
+.review-sentiment {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sentiment-chip {
+    font-size: 12.5px;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 999px;
+    white-space: nowrap;
+    text-align: center;
+}
+
+.sentiment-pos {
+    background: #ecfdf5;
+    color: #065f46;
+}
+
+.sentiment-neu {
+    background: #fffbeb;
+    color: #92400e;
+}
+
+.sentiment-neg {
+    background: #fef2f2;
+    color: #991b1b;
+}
+
+.review-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.review-item {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 18px;
+}
+
+.review-item-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.review-date {
+    color: var(--color-text-muted);
+    font-size: 12.5px;
+    margin-left: auto;
+}
+
+.review-content {
+    margin: 0;
+    color: var(--color-text);
+    line-height: 1.6;
+}
+
+.review-media {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.review-media-thumb,
+.review-media-video {
+    width: 96px;
+    height: 96px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: #f1f5f9;
+    object-fit: cover;
+}
+
+.review-media-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+@media (max-width: 768px) {
+    .review-summary {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ---------- Form đánh giá sản phẩm ---------- */
+
+.form-group textarea {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 14.5px;
+    font-family: inherit;
+    color: var(--color-text);
+    background: var(--color-bg);
+    resize: vertical;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px var(--color-primary-light);
+    background: var(--color-surface);
+}
+
+.star-input {
+    display: flex;
+    gap: 6px;
+}
+
+.star-input-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 28px;
+    line-height: 1;
+    color: var(--color-border);
+    padding: 0;
+}
+
+.star-input-btn.is-filled {
+    color: var(--color-accent);
+}
+
+.form-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+    font-size: 13.5px;
+    cursor: pointer;
+}
+
+.form-checkbox input {
+    width: auto;
+}
+
+.review-form-inline {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.review-form-inline h3 {
+    margin: 0 0 16px;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+/* ---------- Modal chọn hình thức thanh toán (giỏ hàng) ---------- */
+
+.payment-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+/* .payment-modal[hidden] PHẢI khai báo riêng (đặc tả cao hơn ".payment-modal"
+   thường) để thắng được rule "display:flex" ở trên khi JS gán modal.hidden =
+   true - nếu không, thuộc tính HTML "hidden" sẽ vô hiệu hóa (đã gặp đúng lỗi
+   này với .tryon-modal, xem comment ở khối CSS đó để hiểu chi tiết). */
+.payment-modal[hidden] {
+    display: none;
+}
+
+.payment-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.6);
+}
+
+.payment-modal-panel {
+    position: relative;
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    width: 100%;
+    max-width: 420px;
+}
+
+.payment-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.payment-modal-header h2 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.payment-modal-body {
+    padding: 20px 24px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.payment-method-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.payment-method-option:hover {
+    border-color: var(--color-primary);
+}
+
+.payment-method-option input {
+    width: auto;
 }

@@ -1,7 +1,14 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.models import Group
 
 from .models import User
+
+# Model "Nhóm" (Group) của Django dùng để phân quyền theo nhóm - đồ án này
+# chỉ phân quyền đơn giản qua is_staff/is_superuser (xem accounts/views.py,
+# reviews template), không dùng Group ở bất kỳ đâu, nên bỏ khỏi trang admin
+# cho gọn thay vì để 1 mục trống không ai dùng tới.
+admin.site.unregister(Group)
 
 
 @admin.register(User)

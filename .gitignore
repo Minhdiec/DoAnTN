@@ -1,0 +1,24 @@
+# Biến môi trường / bí mật - KHÔNG bao giờ commit (chứa SECRET_KEY, mật khẩu MySQL...)
+.env
+
+# Môi trường ảo Python - gắn chặt với đường dẫn máy cụ thể, mỗi máy tự tạo lại
+.venv/
+venv/
+
+# File biên dịch Python
+__pycache__/
+*.pyc
+*.pyo
+
+# File Django tự sinh, không cần commit
+staticfiles/
+*.log
+db.sqlite3
+
+# Công cụ / IDE
+.vscode/
+.idea/
+
+# Model MediaPipe (~3.6MB, file nhị phân tải từ Google, không phải source code
+# tự viết) - tải lại bằng URL ghi trong CLAUDE_PROGRESS.md mục 4 nếu máy khác cần.
+prototype/models/*.task

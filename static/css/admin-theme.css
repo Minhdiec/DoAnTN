@@ -1,0 +1,47 @@
+/* ==========================================================================
+   Ghi đè theme mặc định của Django admin sang tông xanh navy đậm + trắng,
+   đồng bộ với bảng màu thương hiệu Astraea (xem :root trong style.css).
+   Nạp SAU css gốc của Django (base.css/dark_mode.css) nên các biến CSS ở
+   đây tự động thắng nhờ thứ tự nạp sau, không cần !important.
+   ========================================================================== */
+
+:root,
+html[data-theme="dark"] {
+    --primary: #0b1e3f;
+    --secondary: #060f22;
+    --accent: #1d4ed8;
+    --primary-fg: #fff;
+
+    --header-color: #fff;
+    --header-branding-color: #fff;
+
+    --breadcrumbs-fg: #c7d3ea;
+    --breadcrumbs-link-fg: #fff;
+
+    --link-fg: #1d4ed8;
+    --link-hover-color: #060f22;
+    --link-selected-fg: #1d4ed8;
+
+    --button-bg: #1d4ed8;
+    --button-hover-bg: #1739a6;
+    --default-button-bg: #0b1e3f;
+    --default-button-hover-bg: #060f22;
+
+    --object-tools-bg: #0b1e3f;
+    --object-tools-hover-bg: #060f22;
+}
+
+/* html[data-theme="dark"] của Django còn tự đổi thêm body-bg/body-fg/border
+   sang tông tối riêng - ép luôn về giao diện sáng xanh navy-trắng duy nhất
+   (đồ án không cần hỗ trợ 2 chế độ sáng/tối cho trang quản trị). */
+html[data-theme="dark"] {
+    --body-fg: #111827;
+    --body-bg: #fff;
+    --body-quiet-color: #6b7280;
+    --body-loud-color: #000;
+    --darkened-bg: #f4f6fb;
+    --selected-bg: #e4e9f5;
+    --selected-row: #eef2fb;
+    --border-color: #dde3ee;
+    --hairline-color: #e5e7eb;
+}

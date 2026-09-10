@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static humanize %}
 
-{% block title %}Giỏ hàng - ChuyenDeTN Shop{% endblock %}
+{% block title %}Giỏ hàng - Astraea{% endblock %}
 
 {% block content %}
 <section class="section">
@@ -9,7 +9,7 @@
         <div class="section-head">
             <div>
                 <h2>Giỏ hàng của bạn</h2>
-                <p>{{ cart.total_items }} sản phẩm trong giỏ.</p>
+                <p>{{ cart.total_items|default:0 }} sản phẩm trong giỏ.</p>
             </div>
         </div>
 
@@ -17,7 +17,7 @@
             <div class="cart-layout">
                 <div class="cart-items">
                     {% for item in items %}
-                        <div class="cart-item">
+                        <div class="cart-item" data-cart-item-row data-item-id="{{ item.id }}">
                             <a href="{% url 'products:detail' item.product.slug %}" class="cart-item-thumb">
                                 {% if item.product.image %}
                                     <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}">
@@ -32,14 +32,16 @@
                                 <h3><a href="{% url 'products:detail' item.product.slug %}">{{ item.product.name }}</a></h3>
                                 <span class="cart-item-price">{{ item.product.price|floatformat:0|intcomma }}₫</span>
                             </div>
-                            <form action="{% url 'cart:update' item.id %}" method="post" class="quantity-stepper cart-item-qty">
+                            <form action="{% url 'cart:update' item.id %}" method="post" class="cart-item-qty">
                                 {% csrf_token %}
-                                <button type="button" data-qty-decrease aria-label="Giảm số lượng">&minus;</button>
-                                <input type="number" name="quantity" value="{{ item.quantity }}" min="1" max="{{ item.product.stock_quantity }}" data-qty-input>
-                                <button type="button" data-qty-increase aria-label="Tăng số lượng">&plus;</button>
+                                <div class="quantity-stepper">
+                                    <button type="button" data-qty-decrease aria-label="Giảm số lượng">&minus;</button>
+                                    <input type="number" name="quantity" value="{{ item.quantity }}" min="1" max="{{ item.product.stock_quantity }}" data-qty-input>
+                                    <button type="button" data-qty-increase aria-label="Tăng số lượng">&plus;</button>
+                                </div>
                                 <button type="submit" class="btn btn-ghost btn-small">Cập nhật</button>
                             </form>
-                            <div class="cart-item-total">{{ item.line_total|floatformat:0|intcomma }}₫</div>
+                            <div class="cart-item-total" data-item-total>{{ item.line_total|floatformat:0|intcomma }}₫</div>
                             <form action="{% url 'cart:remove' item.id %}" method="post" class="cart-item-remove">
                                 {% csrf_token %}
                                 <button type="submit" class="icon-btn" aria-label="Xóa sản phẩm" title="Xóa khỏi giỏ hàng">
@@ -53,20 +55,76 @@
                 <div class="cart-summary">
                     <h3>Tóm tắt đơn hàng</h3>
                     <div class="cart-summary-row">
-                        <span>Tạm tính ({{ cart.total_items }} sản phẩm)</span>
-                        <strong>{{ cart.total_price|floatformat:0|intcomma }}₫</strong>
+                        <span>Tạm tính (<span data-cart-total-count>{{ cart.total_items }}</span> sản phẩm)</span>
+                        <strong data-cart-subtotal>{{ cart.total_price|floatformat:0|intcomma }}₫</strong>
                     </div>
                     <div class="cart-summary-row cart-summary-total">
                         <span>Tổng cộng</span>
-                        <strong>{{ cart.total_price|floatformat:0|intcomma }}₫</strong>
+                        <strong data-cart-subtotal>{{ cart.total_price|floatformat:0|intcomma }}₫</strong>
                     </div>
-                    <button type="button" class="btn btn-primary btn-block" disabled title="Tính năng đang phát triển">
-                        Thanh toán
-                    </button>
-                    <p class="cart-summary-note">Tính năng thanh toán đang được phát triển.</p>
+                    {% if user.is_authenticated %}
+                        <button type="button" class="btn btn-primary btn-block" data-payment-open>
+                            Thanh toán
+                        </button>
+                    {% else %}
+                        <a href="{% url 'accounts:login' %}?next={% url 'cart:view' %}" class="btn btn-primary btn-block">
+                            Đăng nhập để thanh toán
+                        </a>
+                    {% endif %}
                     <a href="{% url 'products:home' %}#featured-products" class="section-link">&larr; Tiếp tục mua sắm</a>
                 </div>
             </div>
+
+            {% comment %}
+                Modal chọn hình thức thanh toán - đồ án GIẢ LẬP bước thanh
+                toán (chưa nối cổng thanh toán thật), chọn xong bấm "Xác
+                nhận" là đơn được coi như thanh toán thành công ngay. Bước
+                thanh toán BẮT BUỘC đăng nhập (giỏ hàng thì không) nên modal
+                này chỉ cần render khi đã đăng nhập - khách vãng lai sẽ thấy
+                nút "Đăng nhập để thanh toán" ở trên thay vì modal này.
+            {% endcomment %}
+            {% if user.is_authenticated %}
+            <div class="payment-modal" id="payment-modal" hidden>
+                <div class="payment-modal-backdrop" data-payment-close></div>
+                <div class="payment-modal-panel" role="dialog" aria-modal="true" aria-labelledby="payment-modal-title">
+                    <div class="payment-modal-header">
+                        <h2 id="payment-modal-title">Chọn hình thức thanh toán</h2>
+                        <button type="button" class="tryon-close" data-payment-close aria-label="Đóng">&times;</button>
+                    </div>
+                    <form action="{% url 'orders:checkout' %}" method="post" class="payment-modal-body">
+                        {% csrf_token %}
+
+                        <div class="form-group">
+                            <label for="id_recipient_name">Tên người nhận</label>
+                            <input type="text" name="recipient_name" id="id_recipient_name" value="{{ user.get_full_name|default:user.username }}" placeholder="Họ tên người nhận hàng" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="id_shipping_address">Địa chỉ nhận hàng</label>
+                            <input type="text" name="shipping_address" id="id_shipping_address" value="{{ user.address }}" placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="id_recipient_phone">Số điện thoại người nhận</label>
+                            <input type="tel" name="recipient_phone" id="id_recipient_phone" value="{{ user.phone_number }}" placeholder="VD: 0901234567" required>
+                        </div>
+
+                        <label>Chọn hình thức thanh toán</label>
+                        <label class="payment-method-option">
+                            <input type="radio" name="payment_method" value="COD" checked>
+                            <span>Thanh toán khi nhận hàng (COD)</span>
+                        </label>
+                        <label class="payment-method-option">
+                            <input type="radio" name="payment_method" value="MOMO">
+                            <span>Ví MoMo</span>
+                        </label>
+                        <label class="payment-method-option">
+                            <input type="radio" name="payment_method" value="CARD">
+                            <span>Thẻ ngân hàng</span>
+                        </label>
+                        <button type="submit" class="btn btn-primary btn-block">Xác nhận thanh toán</button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
         {% else %}
             <div class="empty-state">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"></path></svg>

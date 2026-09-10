@@ -3,9 +3,16 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}ChuyenDeTN Shop{% endblock %}</title>
-    <meta name="description" content="{% block description %}ChuyenDeTN Shop - Mua sắm trực tuyến nhanh chóng, an toàn và tiện lợi.{% endblock %}">
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <title>{% block title %}Astraea{% endblock %}</title>
+    <meta name="description" content="{% block description %}Astraea - Mua sắm kính mắt trực tuyến nhanh chóng, an toàn và tiện lợi.{% endblock %}">
+    {% comment %}
+        "?v=" ở cuối: đổi số này mỗi khi sửa style.css để buộc trình duyệt tải
+        bản mới thay vì dùng bản đã cache - Django dev server không tự thêm
+        cơ chế chống cache cho static file, nên nếu không có "?v=" thay đổi,
+        trình duyệt có thể tiếp tục hiển thị CSS cũ dù server đã có bản mới
+        (đúng nguyên nhân của một số lỗi hiển thị đã gặp, xem BUG.ipynb).
+    {% endcomment %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=4">
     {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -25,12 +32,12 @@
 <header class="site-header">
     <div class="header-main">
         <a href="{% url 'products:home' %}" class="brand">
-            <span class="brand-mark">CD</span>
-            ChuyenDeTN
+            <span class="brand-mark">A</span>
+            Astraea
         </a>
 
-        <form class="search-form" action="#" method="get">
-            <input type="search" name="q" placeholder="Tìm kiếm sản phẩm, danh mục...">
+        <form class="search-form" action="{% url 'products:search' %}" method="get">
+            <input type="search" name="q" value="{{ request.GET.q }}" placeholder="Tìm kiếm sản phẩm, danh mục...">
             <button type="submit" aria-label="Tìm kiếm">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
                     <circle cx="11" cy="11" r="7"></circle>
@@ -40,19 +47,20 @@
         </form>
 
         <div class="header-actions">
-            <a href="#" class="icon-link">
+            <a href="{% url 'favorites:list' %}" class="icon-link">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"></path></svg>
                 Yêu thích
+                <span class="icon-badge">{{ favorite_count }}</span>
             </a>
             <a href="{% url 'cart:view' %}" class="icon-link">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.7 13.4a2 2 0 0 0 2 1.6h9.7a2 2 0 0 0 2-1.6L23 6H6"></path></svg>
                 Giỏ hàng
-                <span class="icon-badge">{{ cart_item_count }}</span>
+                <span class="icon-badge" data-cart-badge>{{ cart_item_count }}</span>
             </a>
 
             <div class="header-auth">
                 {% if user.is_authenticated %}
-                    <span class="user-chip">
+                    <a href="{% url 'accounts:profile' %}" class="user-chip">
                         <span class="user-avatar">
                             {% if user.avatar %}
                                 <img src="{{ user.avatar.url }}" alt="{{ user.username }}">
@@ -61,7 +69,8 @@
                             {% endif %}
                         </span>
                         {{ user.first_name|default:user.username }}
-                    </span>
+                    </a>
+                    <a href="{% url 'orders:my_orders' %}" class="btn btn-ghost btn-small">Đơn hàng của tôi</a>
                     <form action="{% url 'accounts:logout' %}" method="post" class="logout-form">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-ghost btn-small">Đăng xuất</button>
@@ -104,10 +113,10 @@
     <div class="container footer-grid">
         <div class="footer-about">
             <a href="{% url 'products:home' %}" class="brand" style="color:#fff;">
-                <span class="brand-mark">CD</span>
-                ChuyenDeTN
+                <span class="brand-mark">A</span>
+                Astraea
             </a>
-            <p>Sàn thương mại điện tử đồ án chuyên đề tốt nghiệp - nơi cung cấp đa dạng sản phẩm với giá tốt, giao hàng nhanh chóng và dịch vụ hỗ trợ tận tâm.</p>
+            <p>Astraea - thương hiệu kính mắt định hình ánh nhìn của riêng bạn. Từ gọng kính thời trang đến kính mắt cận thị chính hãng, mỗi mẫu kính đều được tuyển chọn để tôn lên nét riêng và mang lại cảm giác đeo êm ái mỗi ngày.</p>
             <div class="footer-social">
                 <a href="#" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 21v-7.5h2.5l.5-3h-3V8.5c0-.9.3-1.5 1.6-1.5H16.5V4.3c-.3 0-1.2-.1-2.3-.1-2.3 0-3.9 1.4-3.9 3.9V10.5H8v3h2.3V21h3.2z"></path></svg></a>
                 <a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"></rect><circle cx="12" cy="12" r="4"></circle><circle cx="17.5" cy="6.5" r="1"></circle></svg></a>
@@ -115,7 +124,7 @@
             </div>
         </div>
         <div>
-            <h4>Về ChuyenDeTN</h4>
+            <h4>Về Astraea</h4>
             <ul>
                 <li><a href="#">Giới thiệu</a></li>
                 <li><a href="#">Tuyển dụng</a></li>
@@ -136,24 +145,26 @@
             <h4>Tài khoản</h4>
             <ul>
                 {% if user.is_authenticated %}
+                    <li><a href="{% url 'accounts:profile' %}">Hồ sơ cá nhân</a></li>
                     <li><a href="{% url 'cart:view' %}">Giỏ hàng</a></li>
+                    <li><a href="{% url 'orders:my_orders' %}">Đơn hàng của tôi</a></li>
                 {% else %}
                     <li><a href="{% url 'accounts:login' %}">Đăng nhập</a></li>
                     <li><a href="{% url 'accounts:register' %}">Đăng ký</a></li>
                 {% endif %}
                 <li><a href="#">Ví điện tử</a></li>
-                <li><a href="#">Sản phẩm yêu thích</a></li>
+                <li><a href="{% url 'favorites:list' %}">Sản phẩm yêu thích</a></li>
                 <li><a href="{% url 'admin:index' %}">Trang quản trị</a></li>
             </ul>
         </div>
     </div>
     <div class="container footer-bottom">
-        <span>&copy; {% now "Y" %} ChuyenDeTN. Đồ án chuyên đề tốt nghiệp.</span>
+        <span>&copy; {% now "Y" %} Astraea. Đồ án chuyên đề tốt nghiệp.</span>
         <span>Được xây dựng với Django</span>
     </div>
 </footer>
 
-<script src="{% static 'js/main.js' %}"></script>
+<script src="{% static 'js/main.js' %}?v=3"></script>
 {% block extra_scripts %}{% endblock %}
 </body>
 </html>

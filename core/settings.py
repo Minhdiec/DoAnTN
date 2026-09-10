@@ -71,6 +71,13 @@ ALLOWED_HOSTS = get_env("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost").split(","
 # ---------------------------------------------------------------------------
 
 INSTALLED_APPS = [
+    # "daphne" PHẢI đứng ĐẦU TIÊN trong danh sách này (yêu cầu bắt buộc của
+    # Channels, xem tài liệu chính thức): khi daphne được nạp trước, lệnh
+    # "manage.py runserver" quen thuộc sẽ tự động chạy qua Daphne (server hỗ
+    # trợ ASGI/WebSocket) thay vì server WSGI mặc định của Django - nhờ vậy
+    # không cần đổi lệnh chạy hay learn thêm công cụ mới ở môi trường dev.
+    "daphne",
+
     # --- Các app có sẵn của Django ---
     "django.contrib.admin",  # Trang quản trị /admin
     "django.contrib.auth",  # Hệ thống đăng nhập, phân quyền
@@ -80,12 +87,21 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",  # Quản lý file CSS/JS/ảnh tĩnh
     "django.contrib.humanize",  # Cung cấp filter format số (intcomma) để hiển thị giá tiền đẹp hơn
 
+    # Django Channels: mở rộng Django để xử lý được WebSocket (giao thức 2
+    # chiều, giữ kết nối liên tục) bên cạnh HTTP thông thường - nền tảng bắt
+    # buộc cho việc truyền khung hình webcam qua lại real-time (xem quyết
+    # định #2 trong CLAUDE_PROGRESS.md mục 2: không dùng HTTP polling).
+    "channels",
+
     # --- Các app tự viết cho dự án (mỗi app đảm nhiệm một mảng nghiệp vụ) ---
     "accounts",  # Người dùng (User tùy biến), đăng ký/đăng nhập
     "products",  # Sản phẩm, danh mục sản phẩm
-    "wishlist",  # Danh sách yêu thích
+    "favorites",  # Danh sách yêu thích
     "wallet",  # Ví điện tử, lịch sử giao dịch
     "cart",  # Giỏ hàng
+    "orders",  # Đơn hàng đã đặt (bằng chứng đã mua, dùng bởi tính năng đánh giá)
+    "reviews",  # Đánh giá sản phẩm + phân loại cảm xúc bằng học máy
+    "tryon",  # Thử kính ảo qua webcam (OpenCV + MediaPipe qua WebSocket)
 ]
 
 MIDDLEWARE = [
@@ -118,6 +134,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "cart.context_processors.cart_summary",
+                "favorites.context_processors.favorites_summary",
             ],
         },
     },
@@ -125,6 +142,26 @@ TEMPLATES = [
 
 # Đường dẫn tới ứng dụng WSGI, dùng khi triển khai server thật (Gunicorn...).
 WSGI_APPLICATION = "core.wsgi.application"
+
+# Đường dẫn tới ứng dụng ASGI (core/asgi.py) - nơi định tuyến cả HTTP lẫn
+# WebSocket. Channels đọc biến này để biết "bộ não" xử lý kết nối nằm ở đâu.
+ASGI_APPLICATION = "core.asgi.application"
+
+# CHANNEL_LAYERS: "đường dây" cho phép các kết nối WebSocket khác nhau gửi
+# tin nhắn qua lại với nhau (ví dụ 1 client gửi sự kiện, server broadcast
+# cho nhiều client khác). Module try-on hiện tại KHÔNG cần broadcast giữa
+# nhiều client (mỗi người dùng chỉ nói chuyện 1-1 với server), nhưng
+# Channels vẫn yêu cầu khai báo CHANNEL_LAYERS để chạy được.
+# InMemoryChannelLayer lưu mọi thứ trong RAM của đúng 1 tiến trình Python -
+# ĐỦ DÙNG cho demo/đồ án chạy 1 tiến trình dev server duy nhất, KHÔNG cần
+# cài thêm Redis. Nhược điểm (chấp nhận được ở quy mô này): không hoạt động
+# nếu chạy nhiều tiến trình song song (multi-worker) - đó là lúc mới cần
+# đổi sang RedisChannelLayer.
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    },
+}
 
 
 # ---------------------------------------------------------------------------

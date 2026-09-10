@@ -7,6 +7,7 @@ khai báo trong settings.py), chỉ bổ sung thêm các trường thông tin ri
 model User tùy biến (email, số điện thoại, địa chỉ).
 """
 
+from django import forms
 from django.contrib.auth.forms import UserCreationForm
 
 from .models import User
@@ -29,5 +30,28 @@ class RegisterForm(UserCreationForm):
         # class CSS cho TẤT CẢ các trường (kể cả 2 trường mật khẩu này) trong
         # một vòng lặp duy nhất thay vì khai báo widget riêng cho từng trường.
         for field in self.fields.values():
+            existing_class = field.widget.attrs.get("class", "")
+            field.widget.attrs["class"] = f"{existing_class} {TEXT_INPUT_CLASS}".strip()
+
+
+class ProfileForm(forms.ModelForm):
+    """
+    Form chỉnh sửa hồ sơ cá nhân: họ tên, email, số điện thoại, địa chỉ nhận
+    hàng mặc định, ảnh đại diện. KHÔNG cho đổi username/mật khẩu ở đây (đổi
+    mật khẩu là một luồng riêng, có xác thực mật khẩu cũ - ngoài phạm vi
+    trang hồ sơ đơn giản này).
+    """
+
+    class Meta:
+        model = User
+        fields = ["first_name", "last_name", "email", "phone_number", "address", "avatar"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["email"].required = True
+
+        for name, field in self.fields.items():
+            if name == "avatar":
+                continue
             existing_class = field.widget.attrs.get("class", "")
             field.widget.attrs["class"] = f"{existing_class} {TEXT_INPUT_CLASS}".strip()

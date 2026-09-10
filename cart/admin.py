@@ -10,6 +10,6 @@ class CartItemInline(admin.TabularInline):
 
 @admin.register(Cart)
 class CartAdmin(admin.ModelAdmin):
-    list_display = ("user", "created_at")
-    search_fields = ("user__username",)
+    list_display = ("user", "session_key", "created_at")
+    search_fields = ("user__username", "session_key")
     inlines = [CartItemInline]

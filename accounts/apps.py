@@ -15,5 +15,5 @@ class AccountsConfig(AppConfig):
     def ready(self):
         # Import signals ở đây (không import ở đầu file models.py/apps.py)
         # để đảm bảo Django đã nạp xong toàn bộ app registry trước khi
-        # signals.py import model từ các app khác (cart, wallet, wishlist).
+        # signals.py import model từ các app khác (cart, wallet, favorites).
         from . import signals  # noqa: F401

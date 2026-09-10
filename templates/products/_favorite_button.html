@@ -1,0 +1,25 @@
+{% comment %}
+    Nút trái tim yêu thích - dùng chung cho thẻ sản phẩm (trang chủ/tìm
+    kiếm/danh sách yêu thích) VÀ trang chi tiết sản phẩm. Cần context có sẵn
+    "product" và "favorite_product_ids" (tập id sản phẩm user đã yêu thích -
+    tính 1 lần ở view, xem products/views.py, tránh N+1 query khi include
+    nhiều lần trong 1 trang danh sách).
+{% endcomment %}
+{% if request.user.is_authenticated %}
+    <form action="{% url 'favorites:toggle' product.slug %}" method="post" class="favorite-form">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <button
+            type="submit"
+            class="favorite-btn{% if product.id in favorite_product_ids %} is-active{% endif %}"
+            aria-label="{% if product.id in favorite_product_ids %}Bỏ khỏi yêu thích{% else %}Thêm vào yêu thích{% endif %}"
+            title="{% if product.id in favorite_product_ids %}Bỏ khỏi yêu thích{% else %}Thêm vào yêu thích{% endif %}"
+        >
+            <svg viewBox="0 0 24 24" fill="{% if product.id in favorite_product_ids %}currentColor{% else %}none{% endif %}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"></path></svg>
+        </button>
+    </form>
+{% else %}
+    <a href="{% url 'accounts:login' %}?next={{ request.path }}" class="favorite-btn" aria-label="Đăng nhập để thêm vào yêu thích" title="Đăng nhập để thêm vào yêu thích">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"></path></svg>
+    </a>
+{% endif %}

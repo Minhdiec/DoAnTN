@@ -3,3 +3,14 @@ PyMySQL==1.2.0
 python-dotenv==1.2.2
 Pillow==12.3.0
 requests==2.34.2
+
+# --- Module thử kính ảo (tryon) - xem CLAUDE_PROGRESS.md ---
+channels==4.3.2
+daphne==4.2.3
+opencv-python==5.0.0.93
+mediapipe==0.10.35
+
+# --- Module phân tích cảm xúc đánh giá (reviews) - xem phantichcamxuc/sentiment_analysis.ipynb ---
+scikit-learn==1.9.0
+underthesea==9.5.0
+joblib==1.6.0

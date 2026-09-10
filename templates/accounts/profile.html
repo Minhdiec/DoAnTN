@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Hồ sơ cá nhân - Astraea{% endblock %}
+
+{% block content %}
+<section class="section auth-section">
+    <div class="container">
+        <div class="auth-card">
+            <h1>Hồ sơ cá nhân</h1>
+            <p class="auth-subtitle">Cập nhật thông tin liên hệ - địa chỉ ở đây sẽ được điền sẵn mỗi khi thanh toán.</p>
+
+            {% if form.non_field_errors %}
+                <div class="form-errors">
+                    {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="profile-avatar-current">
+                <span class="user-avatar user-avatar-large">
+                    {% if user.avatar %}
+                        <img src="{{ user.avatar.url }}" alt="{{ user.username }}">
+                    {% else %}
+                        {{ user.username|first|upper }}
+                    {% endif %}
+                </span>
+                <div>
+                    <strong>{{ user.username }}</strong>
+                    <span class="order-date">Thành viên từ {{ user.created_at|date:"d/m/Y" }}</span>
+                </div>
+            </div>
+
+            <form method="post" enctype="multipart/form-data" novalidate>
+                {% csrf_token %}
+                {% for field in form %}
+                    <div class="form-group">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+                        {{ field }}
+                        {% if field.help_text %}<small class="form-help">{{ field.help_text }}</small>{% endif %}
+                        {% for error in field.errors %}<small class="form-error">{{ error }}</small>{% endfor %}
+                    </div>
+                {% endfor %}
+                <button type="submit" class="btn btn-primary btn-block">Lưu thay đổi</button>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

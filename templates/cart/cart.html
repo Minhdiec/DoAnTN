@@ -76,9 +76,7 @@
             </div>
 
             {% comment %}
-                Modal chọn hình thức thanh toán - đồ án GIẢ LẬP bước thanh
-                toán (chưa nối cổng thanh toán thật), chọn xong bấm "Xác
-                nhận" là đơn được coi như thanh toán thành công ngay. Bước
+                Modal chọn hình thức thanh toán + đơn vị vận chuyển. Bước
                 thanh toán BẮT BUỘC đăng nhập (giỏ hàng thì không) nên modal
                 này chỉ cần render khi đã đăng nhập - khách vãng lai sẽ thấy
                 nút "Đăng nhập để thanh toán" ở trên thay vì modal này.
@@ -120,6 +118,29 @@
                             <input type="radio" name="payment_method" value="CARD">
                             <span>Thẻ ngân hàng</span>
                         </label>
+
+                        <label>Chọn đơn vị vận chuyển</label>
+                        <label class="payment-method-option">
+                            <input type="radio" name="shipping_carrier" value="GHN" checked>
+                            <span>Giao Hàng Nhanh (GHN)</span>
+                        </label>
+                        <label class="payment-method-option">
+                            <input type="radio" name="shipping_carrier" value="GHTK">
+                            <span>Giao Hàng Tiết Kiệm (GHTK)</span>
+                        </label>
+                        <label class="payment-method-option">
+                            <input type="radio" name="shipping_carrier" value="SPX">
+                            <span>SPX Express</span>
+                        </label>
+                        <label class="payment-method-option">
+                            <input type="radio" name="shipping_carrier" value="VIETTEL_POST">
+                            <span>Viettel Post</span>
+                        </label>
+                        <label class="payment-method-option">
+                            <input type="radio" name="shipping_carrier" value="JT">
+                            <span>J&amp;T Express</span>
+                        </label>
+
                         <button type="submit" class="btn btn-primary btn-block">Xác nhận thanh toán</button>
                     </form>
                 </div>

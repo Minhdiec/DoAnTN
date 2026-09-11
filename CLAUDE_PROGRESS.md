@@ -2505,8 +2505,480 @@ thành công (thêm đúng sản phẩm); đăng nhập `admin` → redirect đ�
 MySQL) → đơn hàng lưu đúng `payment_method=MOMO`; biểu đồ admin trả về đúng % khớp với số liệu
 đã biết trước đó (Incantation 56/6/38, tổng 100%).
 
+---
 
+## 38. GIAI ĐOẠN 3 — TỐI ƯU ĐỘ TRỄ THỬ KÍNH ẢO (Bài toán A, mục 11)
 
+Người dùng nhờ đọc file đánh giá độc lập `danh_gia_cam_xuc_va_kinh_ao.txt` (do người dùng tự
+viết/tổng hợp, không phải do phiên trước tạo) - file này xác nhận: Giai đoạn 3 (5 kỹ thuật tối
+ưu độ trễ đã lên kế hoạch từ mục 11) **CHƯA từng được áp dụng vào bản web** (chỉ mới cache PNG
+kính - 1/5), và **CHƯA từng đo FPS/độ trễ trên chính pipeline WebSocket thật** (trước đó chỉ có
+baseline 26,96 FPS đo trên `prototype/tryon_demo.py` chạy độc lập, không qua Django/WebSocket).
+Người dùng đồng ý bắt đầu triển khai Giai đoạn 3.
 
+### Phát hiện thêm trước khi tối ưu: debug logging cũ tự gây thêm độ trễ
+
+Rà lại `tryon/consumers.py` + `static/js/tryon.js` phát hiện cơ chế debug tạm (từ phiên
+debug-mode trước, dò lỗi H1-H4 camera/modal - các lỗi đó đã được xác nhận sửa xong ở mục 27-29)
+**vẫn còn chạy trên MỌI khung hình**: phía client `debugLog()` gọi `fetch("/__debug_log__/")`
+(1 HTTP request riêng) mỗi khi nhận 1 khung phản hồi; phía server `_debug_log()` mở + ghi + đóng
+file `.claude/debug.log` mỗi khung trong `_process_frame_sync` (đường CPU nóng nhất). Đây là I/O
+thực tế trên mọi khung hình, ngược hẳn với mục tiêu "giảm độ trễ" của giai đoạn này - đã xóa
+toàn bộ (file `tryon/debug_log.py`, route `__debug_log__/` trong `core/urls.py`, mọi lời gọi
+`debugLog(...)` trong `tryon.js`) trước khi đo baseline, vì để lại sẽ làm baseline/kết quả đo bị
+sai lệch bởi chi phí I/O không liên quan tới thuật toán.
+
+### 5 kỹ thuật đã áp dụng vào `tryon/consumers.py` + `tryon/vision.py`
+
+1. **Thu nhỏ ảnh trước khi đưa vào MediaPipe** (`DETECT_DOWNSCALE_WIDTH = 400px`) khi CHƯA có vị
+   trí mặt từ khung trước - luôn vẽ/dán kính lên khung hình GỐC (không bị thu nhỏ). Landmark
+   MediaPipe là toạ độ chuẩn hoá (0..1) nên độc lập với độ phân giải ảnh đưa vào -
+   `FaceMeshDetector.get_eye_anchor_points` thêm tham số `region_offset` để ánh xạ đúng toạ độ
+   pixel trong khung gốc bất kể đã resize/cắt vùng nào.
+2. **Giới hạn tần suất gọi `detect()` ~15 lần/giây** (`MIN_DETECT_INTERVAL_MS`), CHỈ khi đang bám
+   vết ổn định (`_last_face_box` khác `None`) - giữa 2 lần detect thật, tái dùng toạ độ neo thô
+   của lần gần nhất (vẫn được đưa qua bộ lọc mượt mỗi khung, không "đứng hình").
+3. **One-Euro filter** (`AnchorSmoother`, lớp mới trong `tryon/vision.py`) làm mượt tâm/bề
+   rộng/góc của 2 điểm neo mắt trước khi vẽ kính - chống rung do nhiễu nhận diện từng khung.
+   Reset khi mất mặt để tránh kính "trượt" từ vị trí cũ khi tìm lại được mặt.
+4. Cache renderer theo `glasses_id` - đã có từ trước Giai đoạn 3, giữ nguyên (không đọc lại PNG
+   mỗi khung).
+5. **ROI quanh mắt + CLAHE có điều kiện**: khi đã có vị trí mặt từ khung trước, chỉ cắt + resize
+   vùng ROI quanh mặt (`ROI_DETECT_SIZE = 256px`, cạnh = `eye_distance * ROI_PADDING_RATIO`) đưa
+   vào MediaPipe thay vì cả khung hình; và CLAHE (`LightNormalizer.normalize`) chỉ chạy khi
+   `is_low_light()` thực sự báo thiếu sáng (hàm này có sẵn từ đầu nhưng chưa bao giờ được dùng để
+   bật/tắt - đúng như file đánh giá đã chỉ ra).
+
+### Đo FPS trước/sau — LẦN ĐẦU đo trên chính pipeline xử lý thật (không phải prototype)
+
+Không dùng `channels.testing.WebsocketCommunicator` được (treo không rõ nguyên nhân khi gọi qua
+lớp Channels/ASGI - nghi thread-affinity của MediaPipe VIDEO-mode qua thread pool của
+`sync_to_async`, chưa kết luận chắc vì không phải mục tiêu của giai đoạn này). Thay vào đó gọi
+**trực tiếp** `TryOnConsumer._process_frame_sync` (đúng hàm thật trong code, không viết lại logic
+riêng) với 1 khung hình có mặt người thật (crop từ `media/avatars/4.jpg`, ảnh do người dùng có
+sẵn trong máy - đã xác nhận MediaPipe nhận diện được mặt trong crop này), lặp 120 khung, đo qua
+`time.perf_counter()` - script tại `scripts/bench_tryon_direct.py` (tạm, trong scratchpad).
+
+| Cấu hình | FPS | Trung bình/khung |
+|---|---|---|
+| Baseline (code TRƯỚC Giai đoạn 3, đo trực tiếp) | 33,3 | 30,0 ms |
+| Sau khi áp dụng ĐỦ 5 kỹ thuật | 54,4 | 18,4 ms |
+
+**Bảng đối chiếu từng kỹ thuật riêng lẻ** (tắt lần lượt 1 kỹ thuật khỏi bản đã tối ưu, script
+`bench_tryon_ablation.py`, cùng máy/cùng ảnh test, 120 khung/cấu hình):
+
+| Cấu hình | FPS | So với FULL |
+|---|---|---|
+| FULL (5/5 kỹ thuật) | 53,5 | - |
+| Tắt kỹ thuật 3 (bỏ smoothing) | 54,9 | +1,4 (nhiễu đo, xem giải thích) |
+| Tắt kỹ thuật 5a (CLAHE luôn chạy, bỏ `is_low_light` gating) | 47,1 | −6,4 |
+| Tắt phần giảm độ phân giải của kỹ thuật 5 (ROI vẫn khoanh vùng, không resize nhỏ) | 52,3 | −1,3 |
+| Tắt kỹ thuật 2 (detect() mỗi khung, vẫn có ROI) | 38,3 | −15,3 |
+| Tắt kỹ thuật 1+2+5 (detect() mỗi khung, full-frame, giống trước GĐ3) | 37,5 | −16,0 |
+| Tắt cả 4 kỹ thuật có thể tắt (đối chiếu sanity-check với baseline gốc) | 36,0 | ≈ baseline 33,3 (chênh do nhiễu hệ thống) |
+
+**Nhận xét quan trọng cho báo cáo** (rút ra từ chính số liệu, không suy đoán):
+- **Kỹ thuật 2 (giảm tần suất gọi `detect()`) đóng góp lớn nhất**, không phải kỹ thuật giảm độ
+  phân giải (1/5b) như dự đoán ban đầu trong kế hoạch. Lý do: `FaceLandmarker` của MediaPipe có
+  chi phí gần như CỐ ĐỊNH mỗi lần gọi (mô hình tự chuẩn hoá kích thước đầu vào nội bộ), nên GIẢM
+  SỐ LẦN GỌI tác động nhiều hơn giảm SỐ PIXEL mỗi lần gọi trong trường hợp webcam 640×480 này.
+- **Kỹ thuật 5a (CLAHE có điều kiện)** là đóng góp lớn thứ hai - đúng như file đánh giá đã chỉ ra
+  đây là chỗ hở rõ nhất (hàm `is_low_light()` có sẵn nhưng chưa từng được dùng).
+- **Kỹ thuật 3 (One-Euro filter) KHÔNG làm tăng FPS** (chênh lệch trong khoảng nhiễu đo) - đúng
+  bản chất của nó: mục tiêu là giảm CẢM GIÁC rung/trễ ở CÙNG một FPS (làm mượt chuyển động), không
+  phải tăng tốc xử lý. Cần nêu rõ điều này khi báo cáo để không bị hỏi ngược "sao áp dụng kỹ thuật
+  3 mà FPS không tăng".
+- Kỹ thuật 4 (cache PNG) không đo lại được công bằng trong 1 phiên vì renderer chỉ tạo 1 lần lúc
+  khởi tạo script - giá trị của nó là giảm độ trễ của riêng hành động "đổi kính" (vài chục ms/lần
+  đổi), không phải FPS ổn định liên tục.
+- Số đo dùng `_process_frame_sync` trực tiếp, **bỏ qua lớp Channels/ASGI/WebSocket** (không phải
+  mục tiêu tối ưu của giai đoạn này) - tức là chưa tính độ trễ mạng trình duyệt↔server, vốn phụ
+  thuộc phần cứng/mạng người dùng thật, không phải chi phí CPU mà 5 kỹ thuật này nhằm vào.
+
+### Đã dọn dẹp
+
+- Xóa `tryon/debug_log.py`, route `__debug_log__/` trong `core/urls.py`, toàn bộ `debugLog(...)`
+  trong `static/js/tryon.js` (xem phần "Phát hiện thêm" ở trên).
+- Cập nhật docstring đầu `tryon/consumers.py`/`tryon/vision.py` mô tả đúng 5 kỹ thuật đã áp dụng
+  và lý do (để phiên sau không phải đọc lại toàn bộ diff mới hiểu).
+
+### Chưa làm / cần làm nếu muốn đầy đủ hơn
+
+- Chưa đo trên **bản web thật qua trình duyệt** (webcam thật, mạng thật, nhiều lần đổi kính) -
+  chỉ đo được pipeline CPU nội bộ như trên. Nếu cần số liệu "cảm nhận thực tế" cho báo cáo, nên tự
+  mở trang thử kính, quan sát log console server (`[TryOn][GiaiDoan3] FPS~=... avg_process_ms=...`
+  - dòng này tự in ra mỗi 5 giây, xem `FPS_LOG_INTERVAL_S` trong `tryon/consumers.py`) trong lúc
+  dùng thật, rồi so với bảng trên.
+- Nguyên nhân `channels.testing.WebsocketCommunicator` bị treo khi test qua lớp Channels chưa
+  được điều tra tới cùng - có thể chỉ là quirk của bộ test harness, nhưng cũng có thể liên quan
+  tới việc gọi `FaceMeshDetector.detect()` (giữ trạng thái VIDEO-mode) từ các thread khác nhau của
+  thread pool `sync_to_async(..., thread_sensitive=False)`. Không ảnh hưởng tới việc đo/tối ưu vừa
+  làm (đã tránh bằng cách gọi trực tiếp), nhưng nếu sau này thấy treo/lag bất thường trong sản
+  xuất thật khi nhiều người dùng cùng lúc, đây là nơi đầu tiên nên nghi.
+
+---
+
+## 39. SỬA LỖI "GIẬT/NHẤP NHÁY LIÊN TỤC" khi test Giai đoạn 3 trên web thật
+
+Người dùng tự mở trang thử kính qua trình duyệt thật (theo hướng dẫn ở mục 38) và báo: "khi bật
+webcam lên thì nó giật liên tục, không ổn định, nhấp nháy liên tục" - yêu cầu tìm nguyên nhân và
+sửa, có tính toán cụ thể (không chỉ sửa mò). Đây là lần ĐẦU TIÊN tính năng được test qua webcam
+thật kể từ khi làm Giai đoạn 3 (mục 38 chỉ đo FPS bằng ảnh tĩnh lặp lại, không phát hiện được các
+lỗi này). Đã tìm ra và XÁC NHẬN BẰNG SỐ ĐO 2 nguyên nhân cụ thể (không suy đoán):
+
+### Nguyên nhân 1 — One-Euro filter (kỹ thuật 3) gần như KHÔNG hoạt động
+
+**Cách phát hiện**: gửi LẶP LẠI đúng 1 khung hình (ảnh không đổi) 40 lần liên tiếp qua
+`_process_frame_sync` thật. Nếu ảnh không đổi, vị trí mắt phải đứng yên - nhưng đo ra vị trí THÔ
+(trước lọc) nhảy 137,9 → **111,1** → 136,9 → 140,5 → 141,5 (dao động ±19% dù đầu vào giống hệt -
+đây là nhiễu nội tại của chính bộ theo dõi VIDEO-mode của MediaPipe, không phải lỗi code). Đo tiếp
+độ lệch chuẩn SAU khi qua `AnchorSmoother`: ~5,28 - GẦN BẰNG HOẶC CAO HƠN nhiễu thô (~4,7) - tức bộ
+lọc coi như vô dụng.
+
+**Tính toán nguyên nhân**: `beta` của One-Euro filter nhân trực tiếp với VẬN TỐC tín hiệu. Tín
+hiệu ở đây đo bằng PIXEL (không phải toạ độ chuẩn hoá 0..1 như bài báo gốc dùng), nên vận tốc lớn
+hơn nhiều bậc độ lớn. Với bước nhảy nhiễu ~27px/0,08s ≈ 335px/s và `beta=0,4` (giá trị copy từ ví
+dụ phổ biến, KHÔNG đổi tỉ lệ cho đơn vị pixel): `cutoff = min_cutoff + beta×|vận tốc| = 1,0 +
+0,4×335 ≈ 135` - cutoff bị đội lên gấp ~135 lần, làm bộ lọc hầu như không còn lọc gì (tương đương
+gần như dùng thẳng giá trị thô).
+
+**Đã sửa**: đo thử lại nhiều bộ tham số trên đúng chuỗi nhiễu đã ghi được (xem
+`tryon/vision.py::OneEuroFilter`/`AnchorSmoother` docstring có ghi lại số liệu so sánh) - chọn
+`min_cutoff=0,5, beta=0,015` (giảm ~2000% so với 0,4 cũ): giảm độ lệch chuẩn nhiễu xuống ~3,66-3,99
+(giảm 15-30% tuỳ chuỗi dữ liệu) mà độ trễ khi đầu quay THẬT (mô phỏng dịch 40px/0,24s) chỉ chậm
+~1 khung (~80ms) so với tín hiệu thật - dưới ngưỡng nhận biết của mắt người. Thử `beta=0` (tắt hẳn
+thích nghi) giảm nhiễu mạnh nhất (~60%) nhưng làm kính trễ rõ so với đầu quay thật - không chọn vì
+đánh đổi không đáng.
+
+### Nguyên nhân 2 — CLAHE tự bật/tắt gây nhấp nháy CẢ khung hình
+
+**Cách phát hiện + tính toán**: kỹ thuật 5 ở mục 38 dùng `is_low_light()` - 1 ngưỡng CỨNG (90) để
+quyết định chạy CLAHE hay không mỗi khung. Mô phỏng đúng kiểu nhiễu độ sáng tự nhiên của webcam
+(dao động ±2-4 đơn vị quanh một mức nền, ví dụ chuỗi 92,88,91,87,93,89,90,86,94,88,91,89,92 - đều
+là dao động rất nhỏ, hoàn toàn có thể xảy ra do auto-exposure) rồi gọi `is_low_light()` liên tiếp:
+kết quả đổi trạng thái **12/12 lần** - tức là CLAHE bật/tắt ở **MỌI khung hình liên tiếp**. Vì ảnh
+có CLAHE và không có CLAHE khác nhau rõ về độ sáng/tương phản, việc bật/tắt mỗi khung tạo ra đúng
+hiệu ứng "cả hình ảnh nhấp nháy" mà người dùng mô tả - đây là lỗi kinh điển "bang-bang oscillation"
+khi dùng 1 ngưỡng cứng cho tín hiệu có nhiễu.
+
+**Đã sửa**: thêm `LightNormalizer.should_normalize()` (xem `tryon/vision.py`) - dùng HYSTERESIS
+(2 ngưỡng cách nhau `hysteresis=12` đơn vị quanh ngưỡng 90: vào chế độ tối khi <84, ra khi >96) +
+trạng thái DÍNH (sticky) giữa các khung - ở khoảng giữa 2 ngưỡng thì giữ nguyên trạng thái cũ. Test
+lại CHÍNH chuỗi nhiễu trên: **0/12 lần đổi trạng thái** (từ 12 xuống 0). `tryon/consumers.py` đổi
+gọi `is_low_light()` → `should_normalize()`.
+
+### Cải thiện phòng ngừa thêm (không đo được trực tiếp do giới hạn môi trường, nhưng có cơ sở)
+
+Thêm `MAX_CONSECUTIVE_MISSES = 3`: trước đây 1 lần `detect()` không ra kết quả (có thể do ROI quá
+hẹp/nhiễu tức thời) làm xoá NGAY `_last_face_box`/`_last_raw_anchors` → kính biến mất rồi hiện lại
+ngay khung sau nếu khung kế tiếp detect lại được → cảm giác nhấp nháy. Giờ chỉ thực sự coi là mất
+mặt sau 3 lần LIÊN TIẾP không ra kết quả; trong lúc "dung sai" đó kính giữ nguyên vị trí cũ (đứng
+yên) thay vì biến mất. Không có webcam thật trong môi trường này nên không đo trực tiếp được tần
+suất miss thật của người dùng - đây là cải thiện phòng ngừa dựa trên suy luận hợp lý, cần người
+dùng xác nhận lại có còn thấy hiện tượng biến-mất-rồi-hiện-lại không.
+
+### Đã kiểm tra không hồi quy (regression)
+
+Chạy lại `scripts/bench_tryon_direct.py` sau khi sửa: FPS ~52,6 (so với ~54,4 trước khi sửa mục
+này) - KHÔNG giảm đáng kể (chênh lệch trong khoảng nhiễu đo giữa các lần chạy), xác nhận 3 chỗ sửa
+trên chỉ thay đổi THAM SỐ/ĐIỀU KIỆN, không thêm chi phí CPU đáng kể nào.
+
+### Chưa làm / giới hạn
+
+- KHÔNG có webcam thật trong môi trường chạy Claude Code này, nên không thể tự xem trực tiếp hiệu
+  ứng đã hết giật/nhấp nháy chưa - mọi con số ở trên đo bằng cách gọi thẳng hàm xử lý với ảnh tĩnh/
+  dữ liệu mô phỏng, KHÔNG phải quan sát bằng mắt trên webcam thật. Người dùng cần tự mở lại trang
+  thử kính, xác nhận cảm giác thực tế, và nếu vẫn còn hiện tượng lạ thì mô tả CHI TIẾT HƠN (nhấp
+  nháy là cả hình ảnh sáng/tối đổi, hay chỉ riêng kính biến mất/lệch vị trí, hay hình bị đứng khung
+  rồi nhảy cóc) để khoanh vùng đúng nguyên nhân còn lại nếu có.
+
+---
+
+## 40. SỬA LỖI "NHẬN DẠNG KÍNH LÊN MẶT HƠI LÂU" — cold-start MediaPipe mỗi kết nối
+
+Người dùng test lại trên web thật (sau mục 39), báo độ trễ vẫn còn, cụ thể là **lúc mới bật
+webcam, việc dán kính lên mặt hơi lâu** (không phải giật liên tục như mục 39 nữa - đây là 1 dạng
+độ trễ KHÁC: chậm ở lần đầu, không phải chậm liên tục).
+
+### Nguyên nhân — đo trực tiếp, không suy đoán
+
+Đo thời gian tạo `FaceMeshDetector` (bọc `mediapipe.tasks.python.vision.FaceLandmarker`) - đây là
+việc `connect()` trong `tryon/consumers.py` làm cho MỌI kết nối WebSocket mới:
+
+| Lần tạo trong 1 tiến trình Python | Thời gian |
+|---|---|
+| Lần 1 (đầu tiên trong tiến trình) | **~3.000 - 5.900 ms** |
+| Lần 2, 3... (cùng tiến trình) | **~25 ms** (nhanh hơn ~100-200 lần) |
+
+Đây là chi phí **1 LẦN CHO CẢ TIẾN TRÌNH** (MediaPipe/TFLite/XNNPACK tự khởi tạo kernel tính toán +
+nạp graph mô hình lúc lần đầu được gọi trong tiến trình, không phải chi phí riêng của từng
+instance) - đã kiểm chứng bằng cách tạo lại trên thread khác, qua `sync_to_async` giống hệt code
+thật... đều nhanh SAU KHI tiến trình đã "ấm" (warm). Vấn đề: trước đây, KHÁCH HÀNG ĐẦU TIÊN kết nối
+sau MỖI LẦN server khởi động/tự nạp lại (autoreload - xảy ra mỗi khi sửa 1 file `.py`, tức là RẤT
+THƯỜNG XUYÊN trong lúc phát triển) chính là người phải "trả" chi phí 3-6 giây này - đúng khớp với
+mô tả "nhận dạng kính lên mặt hơi lâu".
+
+### Đã sửa
+
+Thêm `tryon/apps.py::TryonConfig.ready()` - khi server khởi động bằng `runserver` (bỏ qua các lệnh
+khác như `migrate`/`makemigrations`/`shell` vì không cần), tạo 1 `FaceMeshDetector` "vứt đi" (tạo
+xong đóng ngay) trong 1 thread nền NGAY LÚC SERVER KHỞI ĐỘNG - để chi phí 3-6 giây đó xảy ra 1 LẦN,
+lúc chưa ai mở trang web, thay vì rơi vào kết nối thật của người dùng. Có canh để không chạy 2 lần
+ở tiến trình "watcher" của autoreload (kiểm tra `RUN_MAIN`/`--noreload`).
+
+### Xác minh bằng test WebSocket THẬT (qua mạng, không chỉ gọi hàm Python)
+
+Cài tạm gói `websockets` (gỡ ra sau khi test xong, không đưa vào requirements.txt), viết script nối
+thật tới `ws://127.0.0.1:8001/ws/tryon/` đang chạy, đo round-trip từng khung:
+
+- **Lần đo đầu tiên** (vô tình có ~10 tiến trình Python cũ từ các bước test trước đó vẫn còn sống,
+  tranh CPU - xem phần "Bài học" dưới đây): khung đầu tiên mất **5.627 ms** - SAI LỆCH do môi
+  trường, không phải do code.
+- **Sau khi dọn sạch tiến trình rác, khởi động lại server sạch sẽ**: khung đầu tiên chỉ **44 ms**,
+  các khung sau 16-26 ms - nhanh ngay từ đầu, không còn độ trễ khởi động.
+
+### Bài học phụ (vệ sinh môi trường test)
+
+Trong lúc điều tra, phát hiện có ~10 tiến trình `python.exe` "rác" còn sống trên máy - nhiều khả
+năng là hậu quả của các script chẩn đoán ngắn đã chạy trong các bước trước (mỗi lần tạo
+`FaceMeshDetector` để test có thể để lại thread nền của MediaPipe không tự thoát, làm tiến trình
+Python không kết thúc hẳn dù script đã chạy xong). Các tiến trình này tranh CPU khiến 1 lần đo bị
+sai lệch nghiêm trọng (5,6 giây dù code đã đúng) - đã dọn sạch bằng `taskkill`. Đây không phải lỗi
+của code sản phẩm, chỉ là hậu quả của cách tự test trong phiên làm việc này - không ảnh hưởng tới
+người dùng thật khi họ tự chạy `runserver` một lần và dùng bình thường.
+
+### Đã cập nhật cache-busting
+
+`templates/products/detail.html` - đổi `tryon.js?v=2` → `?v=3` (đã sửa `tryon.js` ở mục 38 để bỏ
+debug logging, nhưng số cache-busting chưa đổi nên trình duyệt có thể vẫn dùng bản JS cache cũ -
+tuy về mặt hành vi bản cũ vẫn hoạt động đúng như nhau, nhưng bump số để chắc chắn khớp code mới).
+
+---
+
+## 41. THÊM KÍNH "DUBLIN" + GIẢM ĐỘ TRỄ CẢM NHẬN (tận dụng tốc độ server đã tối ưu)
+
+Người dùng tự chỉnh sửa ảnh kính "Dublin" (sản phẩm Oval, mục 37) và bỏ file `Dublin.png` vào
+`media/tryon/glasses/`, nhờ tích hợp vào thử kính ảo + tối ưu thêm độ trễ/giật.
+
+### Tích hợp Dublin vào thử kính ảo
+
+Kiểm tra `Dublin.png` (6000×3375, do người dùng cung cấp): **KHÔNG có kênh alpha** (3 kênh BGR
+thường, nền trắng thuần) - `GlassesOverlay.__init__` bắt buộc PNG RGBA nên không dùng thẳng được
+(sẽ báo lỗi, rơi về kính vẽ demo xấu xí). Đã tự tách nền:
+
+- Phân tích histogram độ sáng: nền là trắng THUẦN (255), gọng kính nằm gọn trong khoảng 198-221 -
+  có khoảng trống rõ (222-251 gần như không có pixel) nên ngưỡng mềm 225-245 tách sạch, không cần
+  công cụ AI tách nền ngoài (ảnh nền trắng đơn giản, đủ điều kiện dùng ngưỡng độ sáng).
+- Lưu thành `Dublin_f.png` (đúng quy ước hậu tố "_f" như 2 mẫu có sẵn Jasmin/Vanta). File gốc
+  `Dublin.png` (chưa tách nền) GIỮ NGUYÊN, không xoá.
+- Kiểm tra `GlassesOverlay._find_lens_anchors` tự tìm ĐÚNG 2 tâm tròng kính (chế độ TỰ ĐỘNG hoạt
+  động, không cần chỉnh `width_ratio`/`vertical_offset` thủ công) - 2 tâm đối xứng qua trung tâm
+  ảnh (lệch trục Y chỉ ~0.2px, cách đều tâm ~660px mỗi bên).
+- Render thử lên ảnh mặt test (`media/avatars/4.jpg`) bằng `render_on_frame_auto` thật - kính bám
+  đúng vị trí, xoay đúng theo góc nghiêng đầu.
+- Thêm migration `tryon/migrations/0003_seed_dublin_glasses.py` (theo đúng khuôn mẫu migration
+  0002 đã có) gắn `GlassesOverlay` cho sản phẩm slug `dublin` (pk=72) → `Dublin_f.png`. Chạy
+  `migrate tryon` thành công, `makemigrations --check --dry-run` sạch.
+- **Kiểm tra bằng WebSocket THẬT** (không chỉ gọi hàm): `curl` xác nhận trang `/san-pham/dublin/`
+  đã hiện nút "Thử kính ảo" (`data-glasses-id="3"`) và gallery đủ 3 mẫu; gửi khung hình test qua
+  `ws://.../ws/tryon/` với `glasses_id=3` → nhận về đúng ảnh có dán kính Dublin.
+
+### Giảm độ trễ cảm nhận thêm - phát hiện điểm nghẽn MỚI sau khi đã tối ưu server
+
+Người dùng báo "vẫn còn độ trễ nhận kính" sau các lần sửa mục 38-40. Đo lại bằng WebSocket thật
+(giống mục 40): server ổn định ở **~18-35ms/khung** sau khi warm-up xong. NHƯNG `static/js/tryon.js`
+giới hạn cứng client chỉ gửi tối đa **1 khung mỗi 80ms (12,5 fps)** - giá trị này được chọn TỪ TRƯỚC
+Giai đoạn 3, lúc server còn xử lý ~30ms/khung chưa tối ưu gì. Sau khi tối ưu, **client hiện là điểm
+nghẽn chính**: dù server có thể trả lời nhanh hơn nhiều, người dùng vẫn chỉ thấy tối đa 12,5 khung
+hình/giây vì chính trình duyệt tự chặn không gửi thêm.
+
+**Đã sửa**: giảm `CAPTURE_INTERVAL_MS` từ 80 xuống **40ms** (~25 fps trần) trong `static/js/tryon.js`
+- vẫn còn dư biên an toàn so với ~18-35ms server cần, và cơ chế `waitingForResponse` (đã có sẵn,
+không đổi) vẫn đảm bảo không bao giờ gửi dồn ứ nếu mạng/máy người dùng chậm hơn dự kiến. Đồng thời
+điều này làm kỹ thuật 2 (giới hạn tần suất `detect()` ở mục 38, `MIN_DETECT_INTERVAL_MS≈66ms`) LẦN
+ĐẦU TIÊN thực sự có tác dụng (trước đây client tự chặn ở 80ms nên ngưỡng 66ms không bao giờ chạm
+tới - kỹ thuật 2 coi như "ngủ đông" cho tới bản sửa này).
+
+Cập nhật `templates/products/detail.html`: `tryon.js?v=3` → `?v=4` (bump cache-busting cho thay đổi
+`CAPTURE_INTERVAL_MS`).
+
+### Chưa làm / giới hạn
+
+- KHÔNG có webcam thật để tự cảm nhận FPS mới có mượt hơn rõ rệt không - người dùng cần tự mở lại
+  trang, thử lại, xem log `[TryOn][GiaiDoan3] FPS~=...` trong console server để so sánh với trước.
+- Nếu máy người dùng yếu hơn máy dev (CPU chậm hơn, webcam độ phân giải cao hơn 640×480), 40ms có
+  thể hơi tham vọng - `waitingForResponse` sẽ tự bảo vệ khỏi "đổ vỡ" (không bao giờ dồn ứ hàng đợi),
+  nhưng nếu vẫn thấy giật, thử tăng `CAPTURE_INTERVAL_MS` lên 50-60 rồi bump lại số `?v=` template.
+
+### Cập nhật - người dùng add lại ảnh Dublin.png (cùng phiên)
+
+Người dùng ghi đè `media/tryon/glasses/Dublin.png` bằng 1 bản khác (kích thước file đổi
+935.685 → 997.594 bytes, nhưng nội dung/kích thước ảnh và phân bố độ sáng gần như giống hệt bản
+cũ) - vẫn CHƯA có kênh alpha (như lần đầu). Đã xử lý lại ĐÚNG quy trình cũ: tách nền bằng cùng
+ngưỡng (225-245), ghi đè `Dublin_f.png`, xác nhận `_find_lens_anchors` vẫn tự tìm đúng 2 tâm tròng
+kính (toạ độ gần như không đổi: lệch <1px so với lần trước), render thử lên ảnh mặt test cho kết
+quả giống hệt. KHÔNG cần sửa migration/DB - `GlassesOverlay` (pk=3) đã trỏ sẵn tới đúng tên file
+`tryon/glasses/Dublin_f.png`, ghi đè nội dung file là tự động nhận, không cần chạy lại `migrate`.
+
+Ghi chú ngoài lề (không phải việc của phiên này): phát hiện `git status` có sẵn 1 số thay đổi ĐÃ
+STAGE mà KHÔNG do Claude Code chạy `git add` (`img.png`/`img_1.png`/`img_2.png` bị đánh dấu xoá,
+`media/tryon/glasses/Dublin.png` bản CŨ bị đánh dấu thêm mới) - đã báo cho người dùng, không tự ý
+xử lý (không unstage, không commit) vì không rõ nguồn gốc; nhiều khả năng do 1 công cụ Git khác
+(VD: GitHub Desktop, extension Git của VS Code...) người dùng đang chạy song song thao tác.
+
+---
+
+## 42. DỌN TRANG QUẢN TRỊ (admin) + THÊM ĐƠN VỊ VẬN CHUYỂN/TRẠNG THÁI GIAO HÀNG
+
+Yêu cầu: dọn trang `/admin` (bỏ Giỏ hàng/Danh sách yêu thích, đưa Đơn hàng lên đầu, bỏ các đoạn
+"note" kiểu ghi chú đồ án/giả lập khỏi form Đơn hàng và những chỗ tương tự), thêm chọn đơn vị vận
+chuyển lúc đặt hàng + trạng thái giao hàng admin sửa được, sửa email/SĐT "khách hàng ảo" dùng để
+seed đánh giá, và dọn form sửa User (bỏ khối băm mật khẩu + bỏ trường "Nhóm").
+
+### Dọn trang admin
+
+- `cart/admin.py`, `favorites/admin.py`: bỏ `@admin.register(...)` của `Cart`/`Favorite` - 2 model
+  này vẫn hoạt động bình thường trên site, chỉ không còn hiện trong `/admin` nữa.
+- `core/urls.py`: Django mặc định xếp các mục trên trang chủ `/admin` theo THỨ TỰ BẢNG CHỮ CÁI tên
+  app, không có config nào để đổi thứ tự sẵn có → monkeypatch `admin.site.get_app_list` (gọi lại
+  bản gốc của `AdminSite` rồi `sort()` theo khoá `app_label != "orders"`, ổn định nên phần còn lại
+  vẫn giữ nguyên thứ tự cũ) để đưa app "orders" lên đầu danh sách + thanh điều hướng bên trái.
+- `orders/models.py`: xoá 3 `help_text` kiểu "Đồ án không mô phỏng...", "Đồ án GIẢ LẬP bước thanh
+  toán...", "Bắt buộc nhập trước khi thanh toán..." (hiện ngay dưới field tương ứng ở trang chi
+  tiết Đơn hàng /admin) - đây là 3 chỗ DUY NHẤT trong toàn bộ `help_text`/nội dung hiển thị công
+  khai có giọng văn "ghi chú đồ án/giả lập" sau khi rà lại TOÀN BỘ `help_text` của mọi app
+  (accounts/cart/products/favorites/reviews/tryon/wallet) bằng `grep` - các app khác đều là mô tả
+  field bình thường, không đụng tới. Cũng bỏ đoạn `{% comment %}` tương tự trong `templates/cart/
+  cart.html` (dù comment Django không hiện ra HTML, dọn cho gọn nguồn).
+- `accounts/admin.py` (`CustomUserAdmin`): viết lại `fieldsets` KHÔNG kế thừa từ `UserAdmin.fieldsets`
+  gốc nữa - bỏ hẳn field `"password"` (Django mặc định vẽ ở đây bảng "algorithm/iterations/salt/
+  hash" + ghi chú "Mật khẩu không được lưu trữ..." - thông tin kỹ thuật không cần cho người quản
+  trị), bỏ field `"groups"` (đồng bộ với `admin.site.unregister(Group)` đã có sẵn - đồ án chỉ phân
+  quyền qua is_staff/is_superuser). Giữ lại `"user_permissions"` (không được yêu cầu bỏ).
+  Thêm `templates/admin/accounts/user/change_list.html` (theo đúng khuôn mẫu override đã có ở
+  `templates/admin/reviews/review/change_list.html`) override `content_title` rỗng để bỏ tiêu đề
+  "Chọn Người dùng để thay đổi" trên trang danh sách User (tiêu đề tab trình duyệt `<title>` vẫn
+  giữ nguyên, chỉ bỏ dòng H1 hiển thị trên trang).
+
+### Đơn vị vận chuyển + trạng thái giao hàng (`orders/models.py`, `orders/admin.py`, `orders/views.py`)
+
+- Thêm `Order.ShippingCarrier` (GHN/GHTK/SPX/Viettel Post/J&T) - người mua chọn lúc đặt hàng
+  (modal thanh toán ở `templates/cart/cart.html`, validate ở `orders/views.py::checkout` giống hệt
+  cách `payment_method` đang validate).
+  Trường `status` (Đã giao/Đã hủy) GIỮ NGUYÊN vai trò cũ (bằng chứng đã mua cho app reviews).
+- `orders/admin.py`: bỏ hẳn `has_change_permission` (trả `False` cứng trước đây) - dùng
+  `readonly_fields` liệt kê MỌI field trừ `delivery_status` để chỉ mở đúng 1 field này cho admin
+  sửa (đơn vẫn KHÔNG thể sửa các field lịch sử khác qua đường vòng, `has_add_permission` vẫn `False`
+  như cũ). Thêm cột + bộ lọc `delivery_status`/`shipping_carrier` vào `list_display`/`list_filter`.
+- `templates/orders/my_orders.html` + `static/css/style.css`: thêm badge "Vận chuyển: ..." và badge
+  màu theo trạng thái giao hàng (xanh lá = thành công, xanh dương = đang vận chuyển, xám = chờ
+  giao, đỏ = thất bại) cho khách xem trực tiếp trên trang "Đơn hàng của tôi".
+- Migration `orders/migrations/0006_...`: `makemigrations orders` + `migrate orders`, sau đó
+  `makemigrations --check --dry-run` sạch.
+
+### Sửa dữ liệu "khách hàng ảo" (`reviews/management/commands/seed_reviews.py`)
+
+- Đổi `SEED_EMAIL_SUFFIX` từ `@seed.chuyendetn.local` (lộ liễu, trông rõ là dữ liệu giả) sang
+  `@gmail.com`. Vì hậu tố mới không còn phân biệt được với email thật, đổi luôn cách nhận diện để
+  `--reset` xoá đúng user ảo: từ `email__iendswith=...` sang `username__in=SEED_USERNAMES` (an toàn
+  hơn, không phụ thuộc email).
+  Thêm `SEED_PHONE_NUMBERS` (15 số hợp lệ, khớp thứ tự `SEED_USERNAMES`) vì trước đây `phone_number`
+  luôn để trống.
+- **Không chạy `--reset`** để tránh xoá theo cascade toàn bộ đơn hàng/đánh giá đã seed trước đó
+  (đúng cảnh báo trong bộ nhớ về sự cố cũ) - thay vào đó sửa vòng lặp `handle()` để mỗi lần chạy
+  lệnh (kể cả không `--reset`) đều ĐỒNG BỘ LẠI email/SĐT cho user đã tồn tại nếu khác dữ liệu seed
+  hiện tại, rồi chạy `python manage.py seed_reviews` (không cờ) một lần để áp dụng ngay cho 15 user
+  đã có sẵn trong DB - xác minh lại bằng truy vấn DB thật: cả 15 user đều còn nguyên đơn hàng/đánh
+  giá cũ, chỉ email (→ `*.gmail.com`) và SĐT (trước đó rỗng) được cập nhật.
+
+### Tự kiểm tra bằng luồng thật (Django `test.Client` + truy vấn DB trực tiếp, không chỉ đọc code)
+
+- `/admin/cart/cart/` và `/admin/favorites/favorite/` → **404** (đã gỡ khỏi admin).
+- Trang chủ `/admin/`: app "orders" xuất hiện ĐẦU TIÊN trong HTML (trước products/tryon/accounts/
+  wallet/reviews) - xác nhận bằng vị trí ký tự xuất hiện đầu tiên của mỗi link app trong response.
+- `/admin/accounts/user/<id>/change/`: không còn chữ "algorithm"/"pbkdf2"/"Mật khẩu không được lưu
+  trữ" trong HTML trả về; không còn field `name="groups"`; vẫn còn `name="user_permissions"`.
+- `/admin/accounts/user/`: không còn `<h1>Chọn Người dùng để thay đổi</h1>` trong HTML (title tab
+  trình duyệt vẫn còn, đúng ý định).
+- `/admin/orders/order/<id>/change/`: field `delivery_status` là `<select>` sửa được, các field
+  còn lại (kể cả `status`) không render input sửa được. **POST thật** đổi `delivery_status` sang
+  `IN_TRANSIT` (kèm đủ management-form của inline `OrderItem`) → HTTP 302 (lưu thành công), DB xác
+  nhận đổi đúng giá trị - sau đó set lại `DELIVERED` để không để sai lệch dữ liệu đơn thật (#79).
+- Luồng đặt hàng đầu-cuối thật (user tạm thời, xoá sạch sau khi xong + hoàn lại đúng tồn kho):
+  thêm sản phẩm vào giỏ → POST `/don-hang/dat-hang/` với `shipping_carrier=SPX` → **302** →
+  `Order` tạo đúng `shipping_carrier=SPX`, `delivery_status=DELIVERED` mặc định; trang "Đơn hàng
+  của tôi" hiện đúng badge "Vận chuyển: SPX Express" + "Giao hàng thành công"; trang giỏ hàng hiện
+  đúng 5 lựa chọn đơn vị vận chuyển.
+- `manage.py check` sạch, `makemigrations --check --dry-run` sạch.
+
+### Chưa làm / để ngỏ
+
+- ~~Chưa dọn các tài khoản test còn sót lại~~ → đã xoá trong phiên tiếp theo, xem mục "Dọn tài
+  khoản test cũ" ngay dưới đây.
+
+### Dọn tài khoản test cũ (cùng phiên tiếp theo)
+
+Người dùng xác nhận xoá 13 tài khoản test còn sót từ các phiên trước (`testuser*`, `testmerge*`,
+`testorder*`, `pwtest*`, `pwdebug*`, `pwprofile*`, toàn bộ email `@example.com`, không phải
+superuser/staff). Trước khi xoá đã kiểm tra từng tài khoản có `Order` hay không (sợ cascade xoá đơn
+làm "rò rỉ" tồn kho nếu đơn còn ở trạng thái chưa hủy) - cả 4 đơn liên quan (testorder*/pwtest*)
+đều đã ở trạng thái `CANCELLED` từ trước (tồn kho đã được hoàn lại đúng lúc hủy), nên xoá an toàn,
+không cần chỉnh tồn kho. Không tài khoản nào có Review.
+
+Xoá bằng `User.objects.filter(pk__in=...).delete()` → cascade đúng 62 dòng (13 User, 13 Cart, 13
+Favorite, 13 Wallet, 4 Order, 4 OrderItem). Xác minh lại danh sách User còn lại: chỉ còn `admin`,
+tài khoản thật của người dùng (`Minh`/`Minh_1008`/`minh123`) và đúng 15 "khách hàng ảo" seed đánh
+giá (mục 42) - không đụng tới `minh123` dù không nằm trong yêu cầu ban đầu, vì không khớp mẫu tên
+test và dùng chung email thật với tài khoản `Minh`.
+
+---
+
+## 43. XOÁ TOÀN BỘ `help_text` KHỎI ADMIN + SỬA DANH MỤC "Square" + DỌN DỮ LIỆU VÍ ẢO
+
+Yêu cầu: người dùng cho rằng `help_text` (note hiển thị dưới mỗi field trong `/admin`) ở TẤT CẢ
+model đều dư thừa, không chỉ 3 chỗ giọng "đồ án/giả lập" đã xoá ở mục 42 - xoá hết. Đổi tên danh
+mục "Vuông (Square)" thành "Square". Hỏi lịch sử giao dịch ví điện tử có phải dữ liệu Claude tự
+tạo hay không, nếu không cần thì xoá.
+
+### Xoá `help_text`
+
+Rà lại bằng `grep` toàn bộ `models.py` của 8 app (accounts/cart/products/favorites/orders/reviews/
+tryon/wallet) - xoá SẠCH 29 `help_text` (giữ nguyên `verbose_name`, không đụng field nào khác).
+`makemigrations` (không chỉ định app, để bắt hết 8 app cùng lúc) → 7 migration mới (accounts,
+cart, favorites, orders 0007, products, reviews, tryon, wallet) → `migrate` chạy sạch.
+Xác minh bằng `test.Client` thật: trang sửa Sản phẩm trong `/admin` không còn `<div class="help">`
+nào, không còn bất kỳ đoạn text note nào của 4 field mẫu người dùng nêu.
+
+### Đổi tên danh mục "Vuông (Square)" → "Square"
+
+Chỉ có đúng 2 danh mục trong CSDL (`Oval`, `Vuông (Square)`) - đổi `name`/`slug` của danh mục pk=10
+thành `"Square"`/`"square"` (khớp quy ước tên tiếng Anh thuần của danh mục còn lại `"Oval"`/`"oval"`).
+Phát hiện thêm: `seed_products.sql` (script seed dữ liệu ban đầu, idempotent qua `WHERE NOT EXISTS`)
+vẫn tham chiếu slug cũ `vuong-square` ở 4 chỗ - nếu không sửa, lỡ chạy lại file này sau này sẽ tạo
+ra 1 danh mục "Vuông (Square)" DUPLICATE (vì điều kiện `NOT EXISTS` kiểm tra đúng slug cũ, giờ
+không còn tồn tại nữa) → đã sửa cả 4 chỗ trong `seed_products.sql` sang `Square`/`square` để file
+này vẫn idempotent đúng nếu chạy lại. Xác minh qua `test.Client`: trang chủ hiện đúng "Square",
+không còn "Vuông (Square)" ở đâu.
+
+### Lịch sử giao dịch ví điện tử - XÁC NHẬN là dữ liệu test, đã xoá
+
+Điều tra trước khi trả lời (không đoán): `wallet/urls.py` KHÔNG TỒN TẠI, dòng include trong
+`core/urls.py` đang bị comment (`# path('wallet/', include('wallet.urls'))`) - tính năng Ví điện
+tử CHƯA từng được nối vào site thật, không trang nào (kể cả template) hiển thị số dư/lịch sử giao
+dịch cho người dùng. `orders/views.py::checkout` hiện tại KHÔNG hề gọi `Wallet.withdraw()`. Kiểm
+tra 9 dòng `Transaction` hiện có trong CSDL: toàn bộ mô tả đều là log test thủ công từ các phiên
+trước ("Nap them test checkout admin", "Nap test checkout admin", "Nạp tiền test checkout", "Nap
+them de test upload anh") - đúng là dữ liệu Claude tự tạo lúc test tính năng, KHÔNG phải dữ liệu
+mô phỏng có chủ đích (khác với 15 "khách hàng ảo" ở mục 42, vốn được thiết kế có chủ đích để demo
+tính năng đánh giá). Đã xoá toàn bộ 9 `Transaction` + reset `balance` về 0 cho 2 ví có số dư khác 0
+(giữ nguyên record `Wallet` vì được signal tự tạo 1-1 với User, xoá hẳn có thể gây lỗi ở chỗ khác
+truy cập `user.wallet`). Đã báo lại cho người dùng: tính năng Ví hiện đang "nằm im" (model + admin
+có sẵn nhưng chưa có URL/giao diện nạp tiền thật), không tự ý làm thêm gì ngoài xoá dữ liệu test.
+
+### Tự kiểm tra bằng luồng thật
+
+`manage.py check` sạch, `makemigrations --check --dry-run` sạch. `test.Client` xác nhận: form sửa
+Sản phẩm/admin không còn help text nào; trang chủ hiện đúng tên danh mục mới; `Transaction`
+changelist load bình thường (200, rỗng).
 
 

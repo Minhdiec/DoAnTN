@@ -25,6 +25,13 @@
                             <span class="order-status{% if order.status == 'CANCELLED' %} order-status-cancelled{% endif %}">{{ order.get_status_display }}</span>
                         </div>
 
+                        {% if order.status == "DELIVERED" %}
+                            <div class="order-meta">
+                                <span class="shipping-carrier-badge">Vận chuyển: {{ order.get_shipping_carrier_display }}</span>
+                                <span class="delivery-status delivery-status-{{ order.delivery_status|lower }}">{{ order.get_delivery_status_display }}</span>
+                            </div>
+                        {% endif %}
+
                         <div class="cart-items">
                             {% for item in order.items.all %}
                                 <div class="cart-item order-item">

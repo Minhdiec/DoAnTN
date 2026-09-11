@@ -32,7 +32,6 @@ class Wallet(models.Model):
         on_delete=models.CASCADE,
         related_name="wallet",
         verbose_name="Người dùng",
-        help_text="Mỗi người dùng chỉ có đúng một ví điện tử.",
     )
 
     balance = models.DecimalField(
@@ -41,7 +40,6 @@ class Wallet(models.Model):
         default=Decimal("0.00"),
         validators=[MinValueValidator(Decimal("0.00"))],
         verbose_name="Số dư (VNĐ)",
-        help_text="Số dư hiện tại trong ví, luôn được đảm bảo lớn hơn hoặc bằng 0.",
     )
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Ngày tạo ví")
@@ -160,14 +158,12 @@ class Transaction(models.Model):
         decimal_places=2,
         validators=[MinValueValidator(Decimal("0.01"))],
         verbose_name="Số tiền giao dịch (VNĐ)",
-        help_text="Luôn là số dương, chiều tăng/giảm số dư được xác định bởi transaction_type.",
     )
 
     balance_after = models.DecimalField(
         max_digits=14,
         decimal_places=2,
         verbose_name="Số dư sau giao dịch (VNĐ)",
-        help_text="Số dư của ví ngay SAU KHI giao dịch này hoàn tất, dùng để tra soát đối chiếu.",
     )
 
     description = models.CharField(

@@ -1991,6 +1991,47 @@ button {
     color: #b91c1c;
 }
 
+.order-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.shipping-carrier-badge,
+.delivery-status {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.shipping-carrier-badge {
+    background: #eef1f4;
+    color: var(--color-text-muted);
+}
+
+.delivery-status-pending {
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+.delivery-status-in_transit {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.delivery-status-delivered {
+    background: #d1fae5;
+    color: #047857;
+}
+
+.delivery-status-failed {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
 /* ---------- Đánh giá sản phẩm (trang chi tiết) ---------- */
 
 .review-summary {

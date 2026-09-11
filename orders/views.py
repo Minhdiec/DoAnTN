@@ -58,6 +58,11 @@ def checkout(request):
         messages.error(request, "Vui lòng chọn một hình thức thanh toán.")
         return redirect("cart:view")
 
+    shipping_carrier = request.POST.get("shipping_carrier")
+    if shipping_carrier not in Order.ShippingCarrier.values:
+        messages.error(request, "Vui lòng chọn một đơn vị vận chuyển.")
+        return redirect("cart:view")
+
     # Bắt buộc có tên người nhận + địa chỉ nhận hàng + SĐT người nhận TRƯỚC
     # KHI cho thanh toán (kiểm tra phía server, không chỉ dựa vào thuộc tính
     # "required" của ô nhập - người dùng có thể tắt JS/sửa HTML để bỏ qua).
@@ -77,6 +82,7 @@ def checkout(request):
             user=request.user,
             total_amount=total_amount,
             payment_method=payment_method,
+            shipping_carrier=shipping_carrier,
             recipient_name=recipient_name,
             shipping_address=shipping_address,
             recipient_phone=recipient_phone,

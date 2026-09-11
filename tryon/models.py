@@ -33,31 +33,21 @@ class GlassesOverlay(models.Model):
         on_delete=models.CASCADE,
         related_name="glasses_overlay",
         verbose_name="Sản phẩm",
-        help_text="Sản phẩm kính mà ảnh AR này đại diện cho.",
     )
 
     image = models.ImageField(
         upload_to="tryon/glasses/",
         verbose_name="Ảnh kính (PNG nền trong suốt)",
-        help_text="Ảnh chụp thẳng mặt, nền trong suốt (kênh alpha), dùng để dán lên mặt qua webcam.",
     )
 
     width_ratio = models.FloatField(
         default=1.6,
         verbose_name="Tỉ lệ bề rộng (chế độ dự phòng)",
-        help_text=(
-            "CHỈ dùng khi thuật toán không tự tìm được tâm 2 tròng kính trong ảnh. "
-            "Bề rộng kính hiển thị = khoảng cách 2 mắt × số này."
-        ),
     )
 
     vertical_offset = models.FloatField(
         default=0.0,
         verbose_name="Độ lệch dọc (chế độ dự phòng)",
-        help_text=(
-            "CHỈ dùng ở chế độ dự phòng. Độ lệch dọc của tâm kính so với trung điểm 2 mắt, "
-            "tính theo tỉ lệ khoảng cách 2 mắt (dương = xuống dưới)."
-        ),
     )
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Ngày tạo")

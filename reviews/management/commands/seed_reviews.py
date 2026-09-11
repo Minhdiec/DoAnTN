@@ -34,16 +34,25 @@ from reviews.models import Review
 
 User = get_user_model()
 
-# Toàn bộ user ảo dùng chung một hậu tố email để nhận diện/dọn dẹp được
-# (--reset), trong khi username vẫn trông giống người dùng thật khi hiển thị
-# công khai trên trang đánh giá (KHÔNG dùng tiền tố "seed_..." lộ liễu).
-SEED_EMAIL_SUFFIX = "@seed.chuyendetn.local"
+# Hậu tố email dùng chung cho toàn bộ user ảo - "@gmail.com" để trông giống
+# tài khoản thật khi hiển thị công khai trên trang đánh giá (username vẫn
+# KHÔNG dùng tiền tố "seed_..." lộ liễu). Việc nhận diện/dọn dẹp user ảo
+# (--reset) dựa vào SEED_USERNAMES, không dựa vào hậu tố email.
+SEED_EMAIL_SUFFIX = "@gmail.com"
 SEED_PASSWORD = "seed12345"
 
 SEED_USERNAMES = [
     "minhanh97", "quangtran_hcm", "thuha.pham", "hoangnam88", "linhchi_vu",
     "duchuy2000", "thanhmai_nguyen", "baotran99", "khanhly_dep", "vietanh92",
     "ngocbich.tran", "hoainam_le", "phuongthao96", "gianguyen_hn", "tuankiet.vo",
+]
+
+# SĐT ảo tương ứng theo đúng thứ tự SEED_USERNAMES (đầu số di động Việt Nam
+# hợp lệ), để trang quản trị/đơn hàng không hiển thị SĐT trống cho user ảo.
+SEED_PHONE_NUMBERS = [
+    "0901234567", "0912345678", "0923456789", "0934567890", "0945678901",
+    "0356789012", "0367890123", "0378901234", "0389012345", "0790123456",
+    "0812345678", "0823456789", "0834567890", "0845678901", "0856789012",
 ]
 
 # (rating tối thiểu, rating tối đa, danh sách nội dung) - nội dung là câu
@@ -108,22 +117,36 @@ class Command(BaseCommand):
             return
 
         if options["reset"]:
-            deleted, _ = User.objects.filter(email__iendswith=SEED_EMAIL_SUFFIX).delete()
+            deleted, _ = User.objects.filter(username__in=SEED_USERNAMES).delete()
             self.stdout.write(self.style.WARNING(f"Đã xóa {deleted} bản ghi liên quan tới user ảo cũ."))
 
         review_count = 0
         sentiment_tally = {"POS": 0, "NEU": 0, "NEG": 0}
 
         with transaction.atomic():
-            for username in SEED_USERNAMES:
+            for username, phone_number in zip(SEED_USERNAMES, SEED_PHONE_NUMBERS):
+                expected_email = f"{username}{SEED_EMAIL_SUFFIX}"
                 user, created = User.objects.get_or_create(
                     username=username,
-                    defaults={"email": f"{username}{SEED_EMAIL_SUFFIX}"},
+                    defaults={"email": expected_email, "phone_number": phone_number},
                 )
                 if created:
                     user.set_password(SEED_PASSWORD)
                     user.save(update_fields=["password"])
                 # post_save signal (accounts/signals.py) đã tự tạo Wallet/Cart/Favorite.
+                else:
+                    # User ảo đã tồn tại từ lần seed trước (có thể còn email/
+                    # SĐT cũ) - đồng bộ lại cho khớp dữ liệu seed hiện tại mà
+                    # KHÔNG đụng tới đơn hàng/đánh giá đã tạo trước đó.
+                    update_fields = []
+                    if user.email != expected_email:
+                        user.email = expected_email
+                        update_fields.append("email")
+                    if user.phone_number != phone_number:
+                        user.phone_number = phone_number
+                        update_fields.append("phone_number")
+                    if update_fields:
+                        user.save(update_fields=update_fields)
 
                 # Chỉ mua/đánh giá những sản phẩm CHƯA có đánh giá của user này -
                 # tránh chạy lại lệnh nhiều lần lại tạo thêm đơn hàng trống

@@ -39,7 +39,6 @@ class Category(models.Model):
         unique=True,
         blank=True,
         verbose_name="Đường dẫn thân thiện",
-        help_text="Tự động sinh ra từ tên danh mục, dùng để hiển thị trên URL (ví dụ: dien-thoai).",
     )
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Ngày tạo")
@@ -75,7 +74,6 @@ class Product(models.Model):
         on_delete=models.CASCADE,
         related_name="products",
         verbose_name="Danh mục",
-        help_text="Sản phẩm này thuộc danh mục nào.",
     )
 
     created_by = models.ForeignKey(
@@ -85,7 +83,6 @@ class Product(models.Model):
         blank=True,
         related_name="created_products",
         verbose_name="Người tạo",
-        help_text="Tài khoản quản trị đã thêm sản phẩm này vào hệ thống.",
     )
 
     name = models.CharField(
@@ -110,7 +107,6 @@ class Product(models.Model):
         decimal_places=2,
         validators=[MinValueValidator(Decimal("0.00"))],
         verbose_name="Giá bán (VNĐ)",
-        help_text="Giá tiền phải lớn hơn hoặc bằng 0, dùng kiểu Decimal để không bị sai số.",
     )
 
     stock_quantity = models.PositiveIntegerField(
@@ -128,7 +124,6 @@ class Product(models.Model):
         choices=Gender.choices,
         default=Gender.UNISEX,
         verbose_name="Giới tính",
-        help_text="Sản phẩm dành cho Nữ, Nam hay Unisex - dùng để lọc sản phẩm trên trang chủ.",
     )
 
     image = models.ImageField(
@@ -136,27 +131,23 @@ class Product(models.Model):
         blank=True,
         null=True,
         verbose_name="Ảnh sản phẩm",
-        help_text="Ảnh sản phẩm được lưu vào thư mục media/products/.",
     )
 
     is_active = models.BooleanField(
         default=True,
         verbose_name="Đang bày bán",
-        help_text="Bỏ tick để ẩn sản phẩm khỏi trang chủ mà không cần xóa hẳn dữ liệu.",
     )
 
     sku = models.CharField(
         max_length=64,
         blank=True,
         verbose_name="Mã sản phẩm (SKU)",
-        help_text="Mã sản phẩm lấy từ nguồn dữ liệu gốc, dùng để tra soát/đối chiếu.",
     )
 
     specs = models.JSONField(
         default=dict,
         blank=True,
         verbose_name="Thông số kỹ thuật",
-        help_text="Cặp key/value tự do (kích thước gọng, chất liệu, khả năng chống UV...).",
     )
 
     care_instructions = models.TextField(

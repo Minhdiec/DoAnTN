@@ -35,7 +35,6 @@ class Cart(models.Model):
         null=True,
         blank=True,
         verbose_name="Người dùng",
-        help_text="Để trống nếu đây là giỏ hàng của khách vãng lai (chưa đăng nhập).",
     )
 
     session_key = models.CharField(
@@ -44,7 +43,6 @@ class Cart(models.Model):
         blank=True,
         unique=True,
         verbose_name="Khóa phiên (khách vãng lai)",
-        help_text="Chỉ có giá trị khi giỏ hàng thuộc về khách chưa đăng nhập.",
     )
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Ngày tạo")

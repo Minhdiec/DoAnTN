@@ -20,25 +20,39 @@ class OrderAdmin(admin.ModelAdmin):
         "id",
         "user",
         "status",
+        "delivery_status",
         "payment_method",
+        "shipping_carrier",
         "total_amount",
         "created_at",
         "xem_chi_tiet",
     )
-    list_filter = ("status", "payment_method")
+    list_filter = ("status", "delivery_status", "payment_method", "shipping_carrier")
     search_fields = ("user__username", "shipping_address", "recipient_phone")
     inlines = [OrderItemInline]
+
+    # Đơn hàng là dữ liệu LỊCH SỬ (khách đã mua gì, giá bao nhiêu, giao đến
+    # đâu) - admin sửa lại các trường này sẽ làm sai lệch bằng chứng đã mua
+    # mà app reviews dựa vào, nên toàn bộ ở đây chỉ đọc. Riêng
+    # "delivery_status" được PHÉP sửa vì đó là tiến trình giao hàng thật sự
+    # thay đổi theo thời gian (đơn vị vận chuyển báo về), không phải bằng
+    # chứng đã mua.
+    readonly_fields = (
+        "user",
+        "status",
+        "total_amount",
+        "payment_method",
+        "shipping_carrier",
+        "recipient_name",
+        "shipping_address",
+        "recipient_phone",
+        "created_at",
+    )
 
     def has_add_permission(self, request):
         # Đơn hàng CHỈ được tạo qua orders/views.py::checkout() (đi kèm trừ
         # tồn kho + xóa giỏ hàng đúng luồng) - admin tự tạo 1 đơn từ đây sẽ
         # không có sản phẩm/tồn kho đi kèm, dữ liệu sai lệch ngay từ đầu.
-        return False
-
-    def has_change_permission(self, request, obj=None):
-        # Đơn hàng là dữ liệu LỊCH SỬ (khách đã mua gì, giá bao nhiêu, giao
-        # đến đâu) - admin sửa lại các trường này sẽ làm sai lệch bằng chứng
-        # đã mua mà app reviews dựa vào. Vẫn xem được chi tiết (chỉ đọc).
         return False
 
     @admin.display(description="")

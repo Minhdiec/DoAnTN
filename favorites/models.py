@@ -25,7 +25,6 @@ class Favorite(models.Model):
         on_delete=models.CASCADE,
         related_name="favorites",
         verbose_name="Người dùng",
-        help_text="Mỗi người dùng chỉ có đúng một danh sách yêu thích.",
     )
 
     products = models.ManyToManyField(
@@ -33,7 +32,6 @@ class Favorite(models.Model):
         blank=True,
         related_name="favorited_by",
         verbose_name="Sản phẩm yêu thích",
-        help_text="Các sản phẩm mà người dùng này đã thêm vào danh sách yêu thích.",
     )
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Ngày tạo")

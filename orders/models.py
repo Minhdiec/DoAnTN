@@ -1,18 +1,18 @@
 """
 Model cho app "orders".
 
-Đây là "bằng chứng đã mua" của toàn hệ thống: khi người dùng bấm "Đặt hàng"
-ở giỏ hàng, giỏ hàng (Cart/CartItem - tạm, có thể sửa/xóa) được "đóng băng"
-lại thành một Order kèm nhiều OrderItem (từng dòng sản phẩm, LƯU LẠI giá tại
+Đây là "bằng chứng đã mua" của toàn hệ thống: khi người dùng đặt hàng từ giỏ
+hàng, giỏ hàng (Cart/CartItem - tạm, có thể sửa/xóa) được "đóng băng" lại
+thành một Order kèm nhiều OrderItem (từng dòng sản phẩm, LƯU LẠI giá tại
 thời điểm mua, vì giá sản phẩm có thể thay đổi sau này mà đơn hàng cũ không
 được đổi theo).
 
-LƯU Ý: đồ án này KHÔNG mô phỏng quy trình vận chuyển nhiều trạng thái (chờ
-xác nhận -> đang giao -> giao thành công...). Để đơn giản, MỌI đơn hàng vừa
-đặt (thanh toán qua ví thành công) được coi là đã giao thành công ngay lập
-tức. Trường "status" chỉ có 2 giá trị: đã giao (mặc định) và đã hủy - người
-mua có thể tự hủy đơn đã đặt (orders/views.py::cancel_order), khi đó tồn
-kho của từng sản phẩm trong đơn được TỰ ĐỘNG hoàn trả lại.
+Đơn mới đặt (thanh toán thành công) mặc định có "delivery_status" = đã giao
+thành công để người mua đánh giá sản phẩm được ngay; admin có thể chỉnh lại
+trạng thái giao hàng trong trang quản trị (xem orders/admin.py). Trường
+"status" là trạng thái tổng của đơn (đã giao / đã hủy) - người mua có thể tự
+hủy đơn đã đặt (orders/views.py::cancel_order), khi đó tồn kho của từng sản
+phẩm trong đơn được TỰ ĐỘNG hoàn trả lại.
 """
 
 from decimal import Decimal
@@ -34,6 +34,19 @@ class Order(models.Model):
         MOMO = "MOMO", "Ví MoMo"
         CARD = "CARD", "Thẻ ngân hàng"
 
+    class ShippingCarrier(models.TextChoices):
+        GHN = "GHN", "Giao Hàng Nhanh (GHN)"
+        GHTK = "GHTK", "Giao Hàng Tiết Kiệm (GHTK)"
+        SPX = "SPX", "SPX Express"
+        VIETTEL_POST = "VIETTEL_POST", "Viettel Post"
+        JT = "JT", "J&T Express"
+
+    class DeliveryStatus(models.TextChoices):
+        PENDING = "PENDING", "Chờ giao hàng"
+        IN_TRANSIT = "IN_TRANSIT", "Đang trên đường vận chuyển"
+        DELIVERED = "DELIVERED", "Giao hàng thành công"
+        FAILED = "FAILED", "Giao hàng thất bại"
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -46,7 +59,13 @@ class Order(models.Model):
         choices=Status.choices,
         default=Status.DELIVERED,
         verbose_name="Trạng thái đơn hàng",
-        help_text="Đồ án không mô phỏng vận chuyển nhiều bước - đơn mới đặt luôn ở trạng thái đã giao thành công, người mua có thể tự hủy sau đó.",
+    )
+
+    delivery_status = models.CharField(
+        max_length=20,
+        choices=DeliveryStatus.choices,
+        default=DeliveryStatus.DELIVERED,
+        verbose_name="Trạng thái giao hàng",
     )
 
     total_amount = models.DecimalField(
@@ -61,7 +80,13 @@ class Order(models.Model):
         choices=PaymentMethod.choices,
         default=PaymentMethod.COD,
         verbose_name="Hình thức thanh toán",
-        help_text="Đồ án GIẢ LẬP bước thanh toán (chưa nối cổng thanh toán thật) - chỉ ghi lại hình thức người dùng chọn.",
+    )
+
+    shipping_carrier = models.CharField(
+        max_length=20,
+        choices=ShippingCarrier.choices,
+        default=ShippingCarrier.GHN,
+        verbose_name="Đơn vị vận chuyển",
     )
 
     recipient_name = models.CharField(
@@ -74,7 +99,6 @@ class Order(models.Model):
         max_length=255,
         default="",
         verbose_name="Địa chỉ nhận hàng",
-        help_text="Bắt buộc nhập trước khi thanh toán - lưu lại đúng địa chỉ tại thời điểm đặt hàng (khác với địa chỉ mặc định trong hồ sơ, vì người dùng có thể đổi sau này).",
     )
 
     recipient_phone = models.CharField(
@@ -125,7 +149,6 @@ class OrderItem(models.Model):
         decimal_places=2,
         validators=[MinValueValidator(Decimal("0.00"))],
         verbose_name="Đơn giá lúc mua (VNĐ)",
-        help_text="Giá sản phẩm tại thời điểm mua, không đổi theo giá hiện tại của sản phẩm.",
     )
 
     class Meta:

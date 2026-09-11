@@ -42,7 +42,6 @@ class Review(models.Model):
         on_delete=models.CASCADE,
         related_name="review",
         verbose_name="Bằng chứng đã mua",
-        help_text="Dòng đơn hàng (đã giao thành công) chứng minh người này đã mua sản phẩm.",
     )
 
     rating = models.PositiveSmallIntegerField(
@@ -55,7 +54,6 @@ class Review(models.Model):
     is_anonymous = models.BooleanField(
         default=False,
         verbose_name="Ẩn danh",
-        help_text="Bật thì KHÔNG hiển thị tên người dùng công khai (hệ thống vẫn biết là ai).",
     )
 
     sentiment = models.CharField(
@@ -63,14 +61,12 @@ class Review(models.Model):
         choices=Sentiment.choices,
         blank=True,
         verbose_name="Nhãn cảm xúc (AI)",
-        help_text="Do mô hình học máy tự động gán khi lưu đánh giá.",
     )
 
     sentiment_confidence = models.FloatField(
         null=True,
         blank=True,
         verbose_name="Độ tin cậy dự đoán",
-        help_text="Xác suất lớn nhất trong 3 lớp - CHỈ dùng nội bộ/admin, không hiển thị cho khách.",
     )
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Ngày đánh giá")

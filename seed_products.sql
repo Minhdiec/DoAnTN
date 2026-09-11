@@ -15,22 +15,22 @@
 SET NAMES utf8mb4;
 
 -- ---------- Danh muc theo dang gong kinh (chi 2 danh muc dang co san pham) ----------
-INSERT INTO products_category (name, slug, created_at) SELECT 'Vuông (Square)', 'vuong-square', NOW() WHERE NOT EXISTS (SELECT 1 FROM products_category WHERE slug = 'vuong-square');
+INSERT INTO products_category (name, slug, created_at) SELECT 'Square', 'square', NOW() WHERE NOT EXISTS (SELECT 1 FROM products_category WHERE slug = 'square');
 INSERT INTO products_category (name, slug, created_at) SELECT 'Oval', 'oval', NOW() WHERE NOT EXISTS (SELECT 1 FROM products_category WHERE slug = 'oval');
 
 -- ---------- San pham ----------
 INSERT INTO products_product (name, slug, description, price, stock_quantity, image, is_active, created_at, updated_at, category_id, created_by_id, gender) SELECT 'Incantation', 'incantation-black', 'Designed with a nod to the effortless glamour of the 70s, INCANTATION is a statement-making silhouette that feels both feminine and flattering. Featuring an oversized frame and refined detailing, this style brings a touch of vintage allure while remaining modern and wearable.
 - Finished in a black frame with smoke mono lenses.
 - Made using BPA free polymer plastic which is lightweight, durable and impact resistant.
-- Fitted with shatterproof and scratch resistant polycarbonate lenses.', 1651000, 19, 'products/incantation-black.jpg', 1, NOW(), NOW(), (SELECT id FROM products_category WHERE slug = 'vuong-square'), NULL, 'nu' WHERE NOT EXISTS (SELECT 1 FROM products_product WHERE slug = 'incantation-black');
+- Fitted with shatterproof and scratch resistant polycarbonate lenses.', 1651000, 19, 'products/incantation-black.jpg', 1, NOW(), NOW(), (SELECT id FROM products_category WHERE slug = 'square'), NULL, 'nu' WHERE NOT EXISTS (SELECT 1 FROM products_product WHERE slug = 'incantation-black');
 INSERT INTO products_product (name, slug, description, price, stock_quantity, image, is_active, created_at, updated_at, category_id, created_by_id, gender) SELECT 'Mythic', 'mythic-gold-blue-light-lens', 'Defined by its geometric silhouette and slimline metal construction, MYTHIC octagonal sunglasses are a modern classic with sharp appeal. The unique lens shape offers a clean, angular finish, while the tapered temples and adjustable nose pads ensure a tailored fit. This frame is finished with our signature flag stripe mono block end piece and sleek slimline metal temples.
 - Finished in a gold frame.
 - Sturdy metal frame fitted with allergy-free cushioned PVC nose pads.
-- Fitted with anti-blue...', 2159000, 18, 'products/mythic-gold-blue-light-lens.jpg', 1, NOW(), NOW(), (SELECT id FROM products_category WHERE slug = 'vuong-square'), NULL, 'unisex' WHERE NOT EXISTS (SELECT 1 FROM products_product WHERE slug = 'mythic-gold-blue-light-lens');
+- Fitted with anti-blue...', 2159000, 18, 'products/mythic-gold-blue-light-lens.jpg', 1, NOW(), NOW(), (SELECT id FROM products_category WHERE slug = 'square'), NULL, 'unisex' WHERE NOT EXISTS (SELECT 1 FROM products_product WHERE slug = 'mythic-gold-blue-light-lens');
 INSERT INTO products_product (name, slug, description, price, stock_quantity, image, is_active, created_at, updated_at, category_id, created_by_id, gender) SELECT 'Impossible', 'impossible-tokyo-tort', 'Designed with a rounded profile and wide proportions for allface sizes, our IMPOSSIBLE rectangular frame sunglasses area wardrobe staple for both guys and girls. Offering a classic nineties inspired look, this unisex sunglass features discreet LeSpecs metal stud detailing on both temples.
 - Finished in a tokyo tort frame with smoke mono lenses.
 - A lightweight, durable and impact resistant polycarbonate frame.
-- Fitted with shatterproof and scratch resistant polycarbonate lenses.', 1778000, 48, 'products/impossible-tokyo-tort.jpg', 1, NOW(), NOW(), (SELECT id FROM products_category WHERE slug = 'vuong-square'), NULL, 'unisex' WHERE NOT EXISTS (SELECT 1 FROM products_product WHERE slug = 'impossible-tokyo-tort');
+- Fitted with shatterproof and scratch resistant polycarbonate lenses.', 1778000, 48, 'products/impossible-tokyo-tort.jpg', 1, NOW(), NOW(), (SELECT id FROM products_category WHERE slug = 'square'), NULL, 'unisex' WHERE NOT EXISTS (SELECT 1 FROM products_product WHERE slug = 'impossible-tokyo-tort');
 INSERT INTO products_product (name, slug, description, price, stock_quantity, image, is_active, created_at, updated_at, category_id, created_by_id, gender, sku, specs, care_instructions) SELECT 'Dublin', 'dublin', 'Dublin là mẫu kính gọng tròn (oval) tối giản, được chế tác từ chất liệu acetate cao cấp với tông màu trong suốt tinh tế - lựa chọn hoàn hảo cho phong cách vừa hiện đại vừa cổ điển, phù hợp cả nam và nữ.
 - Gọng acetate trong suốt, nhẹ và bền, ôm sát khuôn mặt thoải mái cả ngày dài.
 - Thiết kế tròn (oval) full-rim cổ điển, tôn lên nét thanh lịch, tinh tế.

@@ -19,6 +19,12 @@ db.sqlite3
 .vscode/
 .idea/
 
+# File khoá tạm của Word khi đang mở document (~$...)
+~$*
+
+# Thư mục nháp giải nén/dump docx, không phải source code
+scratch_unpacked/
+
 # Model MediaPipe (~3.6MB, file nhị phân tải từ Google, không phải source code
 # tự viết) - tải lại bằng URL ghi trong CLAUDE_PROGRESS.md mục 4 nếu máy khác cần.
 prototype/models/*.task

@@ -1,12 +1,23 @@
+import time
+
 from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 
 from cart.services import merge_guest_cart_into_user
 
-from .forms import ProfileForm, RegisterForm
+from .forms import ForgotPasswordVerifyForm, ProfileForm, RegisterForm, SetNewPasswordForm
+from .models import User
+
+# Khoá session tạm giữ "đã xác minh danh tính, được phép đặt mật khẩu mới
+# cho user này" giữa 2 bước của luồng quên mật khẩu (xem forgot_password_view/
+# reset_password_view) - hết hạn sau RESET_VERIFIED_TTL_SECONDS để không giữ
+# quyền đặt lại mật khẩu vô thời hạn trên một trình duyệt dùng chung.
+RESET_VERIFIED_USER_KEY = "password_reset_verified_user_id"
+RESET_VERIFIED_AT_KEY = "password_reset_verified_at"
+RESET_VERIFIED_TTL_SECONDS = 10 * 60
 
 
 def register_view(request):
@@ -63,6 +74,51 @@ def login_view(request):
         form = AuthenticationForm(request)
 
     return render(request, "accounts/login.html", {"form": form})
+
+
+def forgot_password_view(request):
+    if request.user.is_authenticated:
+        return redirect("products:home")
+
+    if request.method == "POST":
+        form = ForgotPasswordVerifyForm(request.POST)
+        if form.is_valid():
+            user = form.cleaned_data["user"]
+            request.session[RESET_VERIFIED_USER_KEY] = user.pk
+            request.session[RESET_VERIFIED_AT_KEY] = time.time()
+            return redirect("accounts:reset_password")
+    else:
+        form = ForgotPasswordVerifyForm()
+
+    return render(request, "accounts/forgot_password.html", {"form": form})
+
+
+def reset_password_view(request):
+    verified_user_id = request.session.get(RESET_VERIFIED_USER_KEY)
+    verified_at = request.session.get(RESET_VERIFIED_AT_KEY)
+    session_expired = (
+        not verified_user_id
+        or not verified_at
+        or time.time() - verified_at > RESET_VERIFIED_TTL_SECONDS
+    )
+    if session_expired:
+        messages.error(request, "Phiên xác minh đã hết hạn, vui lòng thử lại.")
+        return redirect("accounts:forgot_password")
+
+    target_user = get_object_or_404(User, pk=verified_user_id)
+
+    if request.method == "POST":
+        form = SetNewPasswordForm(target_user, request.POST)
+        if form.is_valid():
+            form.save()
+            del request.session[RESET_VERIFIED_USER_KEY]
+            del request.session[RESET_VERIFIED_AT_KEY]
+            messages.success(request, "Đặt lại mật khẩu thành công, vui lòng đăng nhập lại.")
+            return redirect("accounts:login")
+    else:
+        form = SetNewPasswordForm(target_user)
+
+    return render(request, "accounts/reset_password.html", {"form": form, "target_user": target_user})
 
 
 @login_required

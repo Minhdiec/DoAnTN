@@ -17,6 +17,13 @@ dung duoc tren web, thay bang WebSocket trong tryon/consumers.py):
     vertical_offset (che do DU PHONG - 2 so nay lay tu model
     tryon.models.GlassesOverlay khi khoi tao, xem tryon/consumers.py).
 
+THEM MOI (Giai doan 3 - toi uu do tre, CLAUDE_PROGRESS.md muc 11): class
+OneEuroFilter/AnchorSmoother o cuoi file - lam muot tam/be rong/goc cua 2
+diem neo mat (ky thuat 3), va get_eye_anchor_points them tham so
+region_offset - de anh xa dung toa do khi detect() duoc goi tren 1 vung
+ROI/anh da thu nho (ky thuat 1 + 5) thay vi luon tren ca khung hinh goc.
+Xem tryon/consumers.py de biet cach 2 thu nay duoc dung trong pipeline.
+
 KHONG chuyen GlassesPicker/FPSMeter/main() - do la phan giao dien cua so
 OpenCV rieng cho prototype chay tren may, khong dung duoc tren web (gallery
 chon kinh o web se la HTML/JS - xem templates/products/detail.html, va FPS
@@ -42,6 +49,7 @@ class LightNormalizer:
     def __init__(self, clip_limit: float = 2.0, tile_grid_size=(8, 8), dark_threshold: float = 90.0):
         self._clahe = cv2.createCLAHE(clipLimit=clip_limit, tileGridSize=tile_grid_size)
         self.dark_threshold = dark_threshold
+        self._currently_dark = False  # trang thai dinh (sticky) cho should_normalize() ben duoi
 
     def mean_brightness(self, frame_bgr: np.ndarray) -> float:
         gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
@@ -49,6 +57,35 @@ class LightNormalizer:
 
     def is_low_light(self, frame_bgr: np.ndarray) -> bool:
         return self.mean_brightness(frame_bgr) < self.dark_threshold
+
+    def should_normalize(self, frame_bgr: np.ndarray, hysteresis: float = 12.0) -> bool:
+        """Nhu is_low_light nhung co HYSTERESIS + trang thai DINH (sticky)
+        giua cac lan goi - dung thay is_low_light() trong pipeline video
+        (tryon/consumers.py). LY DO: do sang trung binh 1 khung dao dong tu
+        nhien vai don vi giua cac khung LIEN TIEP (nhieu cam bien + auto-
+        exposure cua webcam), du canh hoan toan khong doi - neu dung 1
+        nguong CUNG (nhu is_low_light) thi moi khi do sang di ngang qua
+        dung diem nguong se lam CLAHE BAT/TAT lien tuc, gay ca khung hinh
+        NHAP NHAY sang/toi (bug kinh dien cua nguong cung tren tin hieu co
+        nhieu - "bang-bang oscillation").
+
+        Cach sua: tach thanh 2 nguong CACH NHAU `hysteresis` don vi quanh
+        dark_threshold - VAO che do toi khi do sang < (nguong - hysteresis/2),
+        RA khoi che do toi khi do sang > (nguong + hysteresis/2); o KHOANG
+        GIUA 2 nguong nay thi GIU NGUYEN trang thai cu (khong doi). Chi can
+        do sang dao dong nho hon `hysteresis` (mac dinh 12, gap doi bien do
+        dao dong thuong gap ~5-6 don vi cua webcam) la se KHONG con nhap
+        nhay, vi phai vuot han qua vung dem moi doi trang thai."""
+        brightness = self.mean_brightness(frame_bgr)
+        enter_threshold = self.dark_threshold - hysteresis / 2.0
+        exit_threshold = self.dark_threshold + hysteresis / 2.0
+        if self._currently_dark:
+            if brightness > exit_threshold:
+                self._currently_dark = False
+        else:
+            if brightness < enter_threshold:
+                self._currently_dark = True
+        return self._currently_dark
 
     def normalize(self, frame_bgr: np.ndarray) -> np.ndarray:
         lab = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2LAB)
@@ -103,16 +140,28 @@ class FaceMeshDetector:
         return self._landmarker.detect_for_video(mp_image, timestamp_ms)
 
     @classmethod
-    def get_eye_anchor_points(cls, result, frame_width: int, frame_height: int):
-        """Tra ve (diem_mat_a, diem_mat_b) toa do pixel, hoac None neu khong
-        phat hien duoc mat nao."""
+    def get_eye_anchor_points(cls, result, region_width: int, region_height: int, region_offset=(0, 0)):
+        """Tra ve (diem_mat_a, diem_mat_b) toa do pixel TRONG KHUNG HINH GOC,
+        hoac None neu khong phat hien duoc mat nao.
+
+        region_width/region_height/region_offset: kich thuoc va vi tri (goc
+        tren-trai) CUA VUNG ANH da dua vao detect() - co the la CA khung
+        hinh goc (offset=(0,0), region_width/height = kich thuoc khung goc,
+        dung khi khong resize/crop gi) HOAC 1 vung nho hon da resize/crop
+        (Giai doan 3, ky thuat 1 + 5 - xem tryon/consumers.py
+        _select_detection_region). Landmark cua MediaPipe la toa do CHUAN
+        HOA (0..1) NEN DOC LAP VOI DO PHAN GIAI anh dua vao detect() - chi
+        can nhan lai voi kich thuoc THAT cua vung tuong ung (khong phai
+        kich thuoc da resize dua vao detect()) roi cong offset la ra dung
+        toa do pixel trong khung hinh GOC, khong can bien doi gi them."""
         if not result.face_landmarks:
             return None
         landmarks = result.face_landmarks[0]
         lm_a = landmarks[cls.RIGHT_EYE_OUTER]
         lm_b = landmarks[cls.LEFT_EYE_OUTER]
-        pt_a = (lm_a.x * frame_width, lm_a.y * frame_height)
-        pt_b = (lm_b.x * frame_width, lm_b.y * frame_height)
+        off_x, off_y = region_offset
+        pt_a = (off_x + lm_a.x * region_width, off_y + lm_a.y * region_height)
+        pt_b = (off_x + lm_b.x * region_width, off_y + lm_b.y * region_height)
         return pt_a, pt_b
 
     def close(self):
@@ -377,3 +426,146 @@ class GlassesOverlay:
         blended = premult_rgb + roi_f * (1.0 - alpha)
         frame_bgr[dst_y0:dst_y1, dst_x0:dst_x1] = np.clip(blended, 0, 255).astype(np.uint8)
         return frame_bgr
+
+
+class _LowPassFilter:
+    """Bo loc thong thap don gian (exponential moving average) - khoi xay
+    dung cua OneEuroFilter ben duoi, KHONG dung truc tiep o ngoai."""
+
+    def __init__(self):
+        self._initialized = False
+        self._value = 0.0
+
+    def filter(self, value: float, alpha: float) -> float:
+        if not self._initialized:
+            self._value = value
+            self._initialized = True
+        else:
+            self._value = alpha * value + (1.0 - alpha) * self._value
+        return self._value
+
+    def reset(self) -> None:
+        self._initialized = False
+
+
+class OneEuroFilter:
+    """Bo loc "One Euro" (Casiez, Roussel & Vogel, 2012) - lam muot 1 tin
+    hieu scalar bien doi theo thoi gian: tu dong SIET chat (muot hon, tre
+    hon) khi tin hieu gan nhu dung yen (rung nhieu do nhieu do nhan dien),
+    va TU DONG NHA (bam sat gia tri that hon, giam tre) khi tin hieu dang
+    doi nhanh thuc su (nguoi dung xoay dau/di chuyen nhanh) - can bang giua
+    "chong rung" va "giam cam giac tre" ma cach lam muot co dinh (vd trung
+    binh truot) khong lam duoc, vi trung binh truot luon tre 1 luong co
+    dinh du dang dung yen hay dang di chuyen.
+
+    Tham so (gia tri mac dinh o AnchorSmoother da chon qua thu nghiem bang
+    tay tren du lieu landmark khuon mat, KHONG phai tinh toan ly thuyet):
+      - min_cutoff: nguong loc khi tin hieu dung yen (nho hon = muot hon).
+      - beta: do "nha loc" theo toc do bien doi (lon hon = bam sat nhanh
+        hon khi di chuyen nhanh, nhung rung hon khi dung yen).
+      - d_cutoff: nguong loc RIENG cho dao ham (toc do) dung de uoc luong
+        toc do bien doi hien tai - it can chinh, 1.0 la gia tri chuan cua
+        thuat toan goc.
+    """
+
+    def __init__(self, min_cutoff: float = 1.0, beta: float = 0.0, d_cutoff: float = 1.0):
+        self.min_cutoff = min_cutoff
+        self.beta = beta
+        self.d_cutoff = d_cutoff
+        self._x_filter = _LowPassFilter()
+        self._dx_filter = _LowPassFilter()
+        self._last_time_s = None
+
+    @staticmethod
+    def _alpha(cutoff: float, dt: float) -> float:
+        tau = 1.0 / (2 * math.pi * cutoff)
+        return 1.0 / (1.0 + tau / dt)
+
+    def filter(self, value: float, timestamp_s: float) -> float:
+        if self._last_time_s is None:
+            dt = 1.0 / 30.0  # gia dinh hop ly cho lan dau (chua co lich su de tinh dt thuc)
+        else:
+            dt = max(1e-3, timestamp_s - self._last_time_s)  # chan dt=0/am (2 khung trung timestamp)
+        self._last_time_s = timestamp_s
+
+        prev_x = self._x_filter._value if self._x_filter._initialized else value
+        dx_raw = (value - prev_x) / dt
+        edx = self._dx_filter.filter(dx_raw, self._alpha(self.d_cutoff, dt))
+
+        cutoff = self.min_cutoff + self.beta * abs(edx)
+        return self._x_filter.filter(value, self._alpha(cutoff, dt))
+
+    def reset(self) -> None:
+        self._x_filter.reset()
+        self._dx_filter.reset()
+        self._last_time_s = None
+
+
+class AnchorSmoother:
+    """Lam muot 2 diem neo mat (dung de can+xoay kinh) bang OneEuroFilter -
+    dung DUNG ky thuat 3 cua Giai doan 3 (CLAUDE_PROGRESS.md muc 11): "One
+    Euro filter lam muot (TAM, BE RONG, GOC) - chong rung, giam cam giac tre
+    du FPS thuc khong doi". Tach 2 diem neo (pt_a, pt_b) thanh 3 dai luong
+    doc lap ROI muon lam muot (tam = trung diem, be rong = khoang cach 2
+    mat, goc = huong vector A->B) THAY VI loc truc tiep 4 toa do x/y cua 2
+    diem - vi 3 dai luong nay la dung cai "y nghia vat ly" cua chuyen dong
+    dau (dau tien/lui = doi be rong, xoay dau = doi goc, dich ngang = doi
+    tam) nen loc rieng se on dinh hon loc tung toa do x/y doc lap.
+
+    reset() PHAI duoc goi khi mat mat (khong con phat hien duoc) - neu
+    khong, lan tim lai mat se bi bo loc "keo" tu vi tri cu ve vi tri moi
+    thay vi bam ngay, gay cam giac kinh "truot" sai vi tri trong tuc.
+
+    VE THAM SO MAC DINH (da do lai, xem CLAUDE_PROGRESS.md muc 39 - bug
+    "giat/nhap nhay" phat hien khi test tren web thuc): `beta` cua
+    OneEuroFilter nhan TRUC TIEP voi VAN TOC cua tin hieu (px/giay o day,
+    vi tam/be rong do bang PIXEL, khac voi bai bao goc dung toa do CHUAN
+    HOA 0..1 nen van toc nho hon nhieu). Gia tri beta=0.4 (copy tu vi du
+    pho bien tren mang, KHONG doi ty le cho don vi pixel) da bi chung minh
+    SAI qua do thuc te: gui LIEN TIEP CUNG 1 khung hinh (tin hieu THAT
+    KHONG DOI) van cho ra do lech chuan sau loc ~5.28, GAN BANG hoac cao
+    hon nhieu tho ban dau (~4.7) - tuc la bo loc GAN NHU VO HIEU, vi nhieu
+    tu chinh MediaPipe (~vai chuc px giua cac khung, quy ra ~300px/s) da
+    du de "cutoff" tu dong tang vuot 100 (cutoff = min_cutoff + beta*|van
+    toc| = 1.0 + 0.4*300 = 121), lam bo loc gan nhu khong con loc gi.
+
+    Da do thu lai tren dung chuoi nhieu nay: min_cutoff=0.5, beta=0.015
+    giam do lech chuan xuong ~3.66 (~30%) ma van bam theo chuyen dong THAT
+    (mo phong quay dau doi 40px/0.24s) chi tre ~1 khung (~80ms, duoi
+    nguong nhan biet cua mat nguoi). beta=0 (tat han tinh nang thich nghi)
+    giam nhieu manh nhat (~1.87, giam 60%) nhung lam kinh tre han so voi
+    dau quay thuc - danh doi khong dang, nen KHONG chon.
+    """
+
+    def __init__(self, min_cutoff: float = 0.5, beta: float = 0.015, d_cutoff: float = 1.0):
+        kwargs = dict(min_cutoff=min_cutoff, beta=beta, d_cutoff=d_cutoff)
+        self._center_x = OneEuroFilter(**kwargs)
+        self._center_y = OneEuroFilter(**kwargs)
+        self._width = OneEuroFilter(**kwargs)
+        self._angle = OneEuroFilter(**kwargs)
+
+    def smooth(self, pt_a, pt_b, timestamp_s: float):
+        dx, dy = pt_b[0] - pt_a[0], pt_b[1] - pt_a[1]
+        width = math.hypot(dx, dy)
+        if width < 1e-3:
+            return pt_a, pt_b  # 2 diem trung nhau - loi nhan dien hi hu, tra ve nguyen (khong loc duoc goc)
+        angle = math.atan2(dy, dx)
+        center_x = (pt_a[0] + pt_b[0]) / 2.0
+        center_y = (pt_a[1] + pt_b[1]) / 2.0
+
+        s_center_x = self._center_x.filter(center_x, timestamp_s)
+        s_center_y = self._center_y.filter(center_y, timestamp_s)
+        s_width = max(1.0, self._width.filter(width, timestamp_s))
+        s_angle = self._angle.filter(angle, timestamp_s)
+
+        half_dx = (s_width / 2.0) * math.cos(s_angle)
+        half_dy = (s_width / 2.0) * math.sin(s_angle)
+        smoothed_a = (s_center_x - half_dx, s_center_y - half_dy)
+        smoothed_b = (s_center_x + half_dx, s_center_y + half_dy)
+        return smoothed_a, smoothed_b
+
+    def reset(self) -> None:
+        self._center_x.reset()
+        self._center_y.reset()
+        self._width.reset()
+        self._angle.reset()

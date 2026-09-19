@@ -2981,4 +2981,73 @@ có sẵn nhưng chưa có URL/giao diện nạp tiền thật), không tự ý 
 Sản phẩm/admin không còn help text nào; trang chủ hiện đúng tên danh mục mới; `Transaction`
 changelist load bình thường (200, rỗng).
 
+---
+
+## 44. THÊM CHỨC NĂNG "QUÊN MẬT KHẨU"
+
+Người dùng báo thiếu chức năng quên mật khẩu. Do dự án CHƯA cấu hình gửi email thật (không có
+SMTP trong `.env`), hỏi người dùng chọn giữa 3 cách (xác minh qua SĐT/email đã đăng ký - không cần
+email thật; email qua console chỉ demo local; email thật qua SMTP cần cung cấp tài khoản Gmail) -
+người dùng chọn **cách 1**.
+
+### Thiết kế luồng 2 bước (`accounts/forms.py`, `accounts/views.py`, `accounts/urls.py`)
+
+- Bước 1 (`/tai-khoan/quen-mat-khau/`, `ForgotPasswordVerifyForm`): nhập username + email HOẶC SĐT
+  đã đăng ký, đối chiếu với hồ sơ User đã lưu. Luôn trả về CÙNG MỘT thông báo lỗi chung dù username
+  không tồn tại hay email/SĐT không khớp - không lộ ra tài khoản nào có tồn tại (chống dò tài khoản).
+- Khớp → lưu `user.pk` + timestamp vào session (khoá `password_reset_verified_user_id`/`_at`, hết
+  hạn sau 10 phút) → chuyển sang bước 2.
+- Bước 2 (`/tai-khoan/dat-lai-mat-khau/`, `SetNewPasswordForm`): đặt mật khẩu mới, chạy đúng
+  `AUTH_PASSWORD_VALIDATORS` đã khai báo trong `settings.py` (giống lúc đăng ký, không cho mật
+  khẩu quá yếu), 2 lần nhập phải khớp nhau. Nếu vào thẳng URL này mà chưa qua bước 1 hoặc phiên xác
+  minh đã hết hạn → bật lại về bước 1 kèm thông báo. Đặt lại thành công → xoá session xác minh,
+  chuyển về trang đăng nhập.
+- Ghi rõ trong docstring `ForgotPasswordVerifyForm`: cách xác minh này yếu hơn gửi link qua email
+  thật (biết được username + email/SĐT của người khác cũng reset hộ được) - đánh đổi đã được người
+  dùng đồng ý chọn cho quy mô đồ án, không phải sơ suất.
+- Thêm link "Quên mật khẩu?" ở `templates/accounts/login.html`, 2 template mới
+  (`forgot_password.html`, `reset_password.html`) theo đúng khuôn mẫu `.auth-card` có sẵn.
+
+### Tự kiểm tra bằng luồng thật (user tạm thời, xoá sau khi xong)
+
+Qua `test.Client`: sai username → lỗi chung; đúng username sai email/SĐT → lỗi chung; đúng username
++ đúng email HOẶC đúng SĐT → sang được bước 2; 2 mật khẩu nhập lại không khớp → báo lỗi; mật khẩu
+yếu (`12345678`) → bị `AUTH_PASSWORD_VALIDATORS` chặn; đặt lại thành công → mật khẩu CŨ hết tác
+dụng (`authenticate()` trả `None`), mật khẩu MỚI đăng nhập được; vào lại `/dat-lai-mat-khau/` sau
+khi đã dùng xong → bị đá về bước 1 kèm thông báo "hết hạn" (session đã bị xoá đúng). `manage.py
+check` sạch (không đổi model nên không cần migration).
+
+---
+
+## 45. FIX LỖI "GIỎ HÀNG/ĐƠN HÀNG KHÔNG HIỆN ĐƠN CŨ, ĐẶT ĐƠN MỚI XONG MỚI HIỆN"
+
+### Điều tra trước khi sửa (không đoán mù)
+
+Người dùng báo: vào trang không thấy các đơn cũ đã đặt, đặt đơn MỚI xong thì mới thấy lại (kể cả
+đơn cũ). Kiểm tra `orders/views.py::my_orders` (query `Order.objects.filter(user=...).order_by(
+"-created_at")`, không slice/không filter ngày) - **đúng 100%**, xác nhận bằng cách render qua
+`test.Client` cho user `minh123` (có sẵn 3 đơn thật #79/#81/#82 tạo trong 2 ngày gần đây): trang
+trả về đúng cả 3 đơn, đúng thứ tự, khớp DB tuyệt đối. `grep` toàn bộ project: KHÔNG có `cache_page`/
+`never_cache`/`Cache-Control` ở bất kỳ đâu - tức là không trang nào chủ động chặn cache trình
+duyệt.
+
+**Kết luận nguyên nhân**: không phải lỗi query/logic phía server, mà là **cache phía trình duyệt**
+(cơ chế "back-forward cache" khi bấm nút Back, hoặc cache HTTP thông thường) - trang "Đơn hàng của
+tôi"/"Giỏ hàng" bị trình duyệt lưu lại "ảnh chụp" từ lần tải trước (lúc chưa có đủ đơn), hiển thị
+lại y hệt bản cũ thay vì tải mới. Chỉ có luồng đặt hàng (POST → redirect → GET) mới chắc chắn né
+được cache này vì đó luôn là một điều hướng MỚI, nên sau khi đặt đơn mới, trang mới hiện đúng lại.
+
+### Sửa
+
+Thêm `@never_cache` (Django, set `Cache-Control: no-store` buộc trình duyệt luôn tải lại, không
+dùng snapshot cache/back-forward cache) cho `orders/views.py::my_orders` (trang được báo lỗi) và
+`cart/views.py::cart_view` (người dùng gọi chung khu vực này là "giỏ hàng", cùng dạng trang hiển
+thị dữ liệu riêng-theo-user nên cùng nguy cơ bị cache y hệt).
+
+### Tự kiểm tra
+
+`manage.py check` sạch. `test.Client` xác nhận cả 2 response đều có header
+`Cache-Control: max-age=0, no-cache, no-store, must-revalidate, private` sau khi thêm decorator
+(trước đó không có header này).
+
 

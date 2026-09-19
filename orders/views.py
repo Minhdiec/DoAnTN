@@ -13,6 +13,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 
 from cart.models import Cart
@@ -22,6 +23,12 @@ from .models import Order, OrderItem
 
 
 @login_required
+# @never_cache: không có decorator này, trình duyệt (đặc biệt cơ chế
+# back-forward cache khi bấm nút Back) có thể hiện lại "ảnh chụp" trang này
+# từ lần tải trước đó thay vì tải lại danh sách đơn mới nhất - user báo
+# "vào trang không thấy đơn cũ, đặt đơn mới xong mới thấy" chính là do
+# trang trước đó được cache lại lúc chưa có đủ đơn.
+@never_cache
 def my_orders(request):
     orders = (
         Order.objects.filter(user=request.user)

@@ -1,0 +1,210 @@
+ĐÁNH GIÁ THỰC TẾ: MÔ-ĐUN PHÂN TÍCH CẢM XÚC & MÔ-ĐUN THỬ KÍNH ẢO
+(Dựa trên rà soát trực tiếp code + CLAUDE_PROGRESS.md tại thời điểm viết file này)
+==============================================================================
+
+PHẦN 1 — PHÂN TÍCH CẢM XÚC BÌNH LUẬN (Sentiment Analysis)
+==============================================================================
+KẾT LUẬN NGẮN: Đáp ứng 3/4 ý yêu cầu đầy đủ, còn THIẾU đúng 1 ý: cơ chế "đánh
+dấu bình luận mô hình chưa chắc chắn để xem xét thêm" mới chỉ có DỮ LIỆU,
+chưa có hành vi ĐÁNH DẤU/lọc riêng.
+
+1) Chuẩn bị dữ liệu + làm sạch + tiền xử lý bằng underthesea — ĐÃ LÀM ĐỦ
+------------------------------------------------------------------------
+File: phantichcamxuc/sentiment_analysis.ipynb
+
+- Dữ liệu gốc: data - data.csv, 31.460 dòng, đã gán nhãn 3 lớp POS/NEU/NEG
+  (cột "comment" + "label").
+- Làm sạch: bỏ dòng thiếu nội dung/nhãn, chuẩn hoá khoảng trắng, gộp dấu câu
+  lặp (vd "!!!" -> "!"), GIỮ NGUYÊN emoji (có tín hiệu cảm xúc thật).
+- Bỏ 4.754 bình luận TRÙNG LẶP (mẫu câu soạn sẵn của shop lặp lại nhiều lần)
+  -> còn 26.706 dòng. Đây là điểm cộng kỹ thuật: nếu không loại trùng lặp,
+  cùng 1 câu có thể vừa nằm ở tập train vừa ở tập test -> đánh giá bị ảo
+  (data leakage) - notebook đã tự phát hiện và sửa lỗi này so với bản mẫu.
+- Phân bố nhãn sau làm sạch: POS 60.5% / NEG 23.6% / NEU 15.9% (mất cân bằng
+  rõ, đã được xử lý ở bước huấn luyện - xem mục 2).
+- Tiền xử lý tiếng Việt: dùng underthesea.word_tokenize(text, format="text")
+  để TÁCH TỪ, ghép từ ghép bằng dấu "_" (vd "chất lượng" -> "chất_lượng"),
+  giúp TF-IDF hiểu đúng đơn vị từ thay vì tách rời từng âm tiết.
+
+2) TF-IDF + huấn luyện/so sánh mô hình — ĐÃ LÀM, VƯỢT YÊU CẦU TỐI THIỂU
+------------------------------------------------------------------------
+- Vector hoá: TfidfVectorizer(ngram_range=(1,2), min_df=3, max_features=30000,
+  sublinear_tf=True) -> 10.181 đặc trưng (từ + cụm 2 từ, giữ được phủ định
+  kiểu "không đẹp").
+- Chia tập train/test 80/20, GIỮ TỈ LỆ NHÃN (stratify=y) -> Train 21.364 /
+  Test 5.342 dòng.
+- Đề bài chỉ yêu cầu "một số mô hình như Logistic Regression" - đồ án đã so
+  sánh THỰC SỰ 3 mô hình, đều dùng class_weight="balanced" (vì dữ liệu lệch
+  lớp POS):
+    * LogisticRegression
+    * ComplementNB (Naive Bayes biến thể phù hợp dữ liệu mất cân bằng)
+    * LinearSVC (calibrated qua CalibratedClassifierCV để có predict_proba)
+
+3) Đánh giá bằng chỉ số định lượng — ĐÃ LÀM, có luận điểm chọn số liệu hợp lý
+------------------------------------------------------------------------
+- So sánh bằng MACRO-F1 (không dùng accuracy thô) - lý do ghi rõ trong
+  notebook: accuracy sẽ bị lớp POS (đa số) áp đảo, che khuất việc mô hình dự
+  đoán kém ở lớp NEU (lớp thiểu số, khó nhất). Đây là lựa chọn kỹ thuật ĐÚNG
+  cho bài toán phân loại 3 lớp mất cân bằng.
+- Kết quả thực đo trên tập test (5.342 dòng):
+    Mô hình                  macro-F1   accuracy
+    LogisticRegression       0.648      0.726   <- được CHỌN
+    ComplementNB             0.626      0.741
+    LinearSVC (calibrated)   0.598      0.762
+- Đáng chú ý: mô hình được chọn (Logistic Regression) KHÔNG phải mô hình có
+  accuracy cao nhất (LinearSVC accuracy 0.762 > 0.726) nhưng có macro-F1 cao
+  nhất - tức là cân bằng tốt hơn giữa 3 lớp, đặc biệt lớp NEU khó nhất
+  (recall NEU: LogReg 0.483 so với LinearSVC chỉ 0.139) - lựa chọn có cơ sở
+  kỹ thuật vững, không chỉ chọn theo số đẹp nhất.
+- Có in classification_report đầy đủ (precision/recall/f1 từng lớp) và vẽ
+  confusion matrix cho mô hình được chọn.
+- Model cuối (vectorizer + model) được lưu vào sentiment_model.joblib.
+
+4) Tích hợp vào website — PHẦN LỚN ĐÃ LÀM, THIẾU 1 Ý
+------------------------------------------------------------------------
+File: reviews/ml/sentiment.py, reviews/views.py, reviews/models.py,
+reviews/admin.py, products/views.py
+
+  a. Tự động dự đoán khi khách gửi bình luận — ĐÃ LÀM ĐỦ
+     reviews/views.py::review_create gọi predict_sentiment(review.content)
+     NGAY khi lưu đánh giá (review.sentiment, review.sentiment_confidence),
+     người dùng KHÔNG tự chọn nhãn. Hàm tiền xử lý ở sentiment.py
+     (clean_text + word_tokenize) được viết GIỐNG HỆT lúc train để không bị
+     lệch không gian đặc trưng.
+
+  b. Lưu kết quả vào cơ sở dữ liệu — ĐÃ LÀM ĐỦ
+     Review.sentiment (POS/NEU/NEG) + Review.sentiment_confidence (float,
+     xác suất lớn nhất trong 3 lớp) đều là cột thật trong DB
+     (reviews/models.py).
+
+  c. Cập nhật thống kê tỷ lệ hài lòng theo sản phẩm — ĐÃ LÀM ĐỦ, ở 2 nơi
+     - Công khai: trang chi tiết sản phẩm hiển thị % Tích cực/Trung lập/
+       Tiêu cực cho đúng sản phẩm đang xem (products/views.py, tính bằng 1
+       aggregate() duy nhất, không query rời rạc).
+     - Trang quản trị: reviews/admin.py::changelist_view tính thống kê TOÀN
+       BỘ + breakdown TỪNG SẢN PHẨM (biểu đồ cột CSS thuần, không phụ thuộc
+       thư viện JS ngoài), tôn trọng bộ lọc admin đang áp dụng.
+
+  d. "Đánh dấu bình luận mô hình CHƯA phân loại chắc chắn để xem xét thêm"
+     — CHƯA LÀM ĐỦ (đây là điểm hở duy nhất so với yêu cầu đề ra)
+     - Có LƯU sentiment_confidence (xác suất lớn nhất, vd 58.39% với câu mơ
+       hồ "Sản phẩm tạm ổn, không có gì đặc biệt" trong ví dụ ở notebook).
+     - Cột này CÓ hiện trong bảng admin (reviews/admin.py list_display) và
+       admin CÓ THỂ tự bấm sắp xếp theo cột này để tìm các dòng confidence
+       thấp - nhưng đó là thao tác THỦ CÔNG của admin, không phải hệ thống
+       CHỦ ĐỘNG đánh dấu.
+     - RÀ TOÀN BỘ CODEBASE (grep "confidence" trên *.py/*.html): không có
+       ngưỡng độ tin cậy (threshold) nào được định nghĩa, không có field
+       kiểu "needs_review"/"cần xem xét", không có filter riêng trong admin
+       (list_filter chỉ có sentiment/rating/is_anonymous/product, KHÔNG có
+       filter theo mức độ tin cậy), không có highlight màu/badge nào cho
+       các dự đoán confidence thấp ở bất kỳ đâu (admin lẫn trang công khai).
+     - Model docstring (reviews/models.py dòng 69-74) còn ghi rõ:
+       "sentiment_confidence ... CHỈ dùng nội bộ/admin, không hiển thị cho
+       khách" - đúng, nhưng ngay cả nội bộ/admin cũng chưa có cơ chế đánh
+       dấu chủ động, chỉ là một cột dữ liệu thô.
+     => MUỐN ĐÁP ỨNG ĐỦ: cần thêm ví dụ 1 ngưỡng (vd confidence < 0.5) để
+        tự đặt cờ "cần xem xét", hiện thêm 1 filter/badge trong admin cho
+        các đánh giá dưới ngưỡng đó.
+
+
+PHẦN 2 — THỬ KÍNH ẢO (Virtual Try-On): ĐÃ XỬ LÝ ĐỘ TRỄ/GIẬT LAG CHƯA?
+==============================================================================
+KẾT LUẬN NGẮN: CHƯA. Đề cương/kế hoạch dự án tự xác định đây là "Bài toán A
+- TRỌNG TÂM CHẤM ĐIỂM" của mô-đun này (CLAUDE_PROGRESS.md mục 1, dòng 23),
+với 1 giai đoạn riêng ("Giai đoạn 3 - tối ưu độ trễ") gồm 5 kỹ thuật cụ thể
+cần áp dụng + đo FPS trước/sau từng kỹ thuật để lập bảng cho báo cáo. Giai
+đoạn này CHƯA TỪNG được thực hiện - rà lại toàn bộ code thực tế (không chỉ
+đọc kế hoạch) xác nhận đúng như vậy.
+
+1) Kế hoạch đã đề ra (CLAUDE_PROGRESS.md mục 11, dòng 472-482) — 5 kỹ thuật
+------------------------------------------------------------------------
+  (1) Thu nhỏ ảnh đưa vào nhận diện (~320-480px) nhưng vẫn vẽ kính lên ảnh
+      GỐC (giảm chi phí MediaPipe mà không giảm chất lượng hiển thị).
+  (2) Giảm tần suất detect (~15 FPS) + nội suy/tái dùng landmark giữa các
+      lần detect (giảm số lần gọi MediaPipe - phần tốn CPU nhất).
+  (3) One-Euro filter làm mượt (tâm, bề rộng, góc) - chống rung, giảm cảm
+      giác trễ dù FPS thực không đổi.
+  (4) Cache ảnh PNG kính đã giải mã 1 lần (không đọc lại file mỗi khung).
+  (5) Chỉ xử lý ROI (vùng quan tâm) quanh mắt, bỏ qua khi không có mặt.
+  Kế hoạch yêu cầu rõ: "DỪNG - báo cáo bảng FPS trước/sau" như một mốc bắt
+  buộc trước khi được coi là hoàn thành.
+
+2) Baseline đã đo — CHỈ ở bản prototype ĐỘC LẬP, KHÔNG phải bản web thật
+------------------------------------------------------------------------
+  File: prototype/tryon_demo.py (chạy trực tiếp bằng cv2.imshow trên máy,
+  KHÔNG qua Django/WebSocket/mạng).
+  Kết quả đo: 424 khung hình / 15,73 giây -> FPS trung bình 26,96 -
+  đây là baseline TRƯỚC khi tối ưu, và baseline này đo TRÊN MÁY CỤC BỘ,
+  KHÔNG tính độ trễ mạng/nén JPEG hai lượt qua WebSocket của bản web.
+
+3) Rà lại code thực tế của bản WEB (tryon/consumers.py, tryon/vision.py)
+   sau khi tích hợp Django — XÁC NHẬN CẢ 5 KỸ THUẬT TRÊN GẦN NHƯ CHƯA ÁP DỤNG
+------------------------------------------------------------------------
+  (1) Thu nhỏ ảnh trước khi detect: KHÔNG có. consumers.py::_process_frame_sync
+      đưa THẲNG khung hình nhận từ client (nguyên kích thước, mặc định
+      640x480 do client yêu cầu) vào self._detector.detect() - không resize
+      xuống trước.
+  (2) Giảm tần suất detect + nội suy landmark: KHÔNG có. detect() được gọi
+      cho MỌI khung hình nhận được, không có logic bỏ qua/nội suy giữa các
+      lần detect.
+  (3) One-Euro filter: KHÔNG có. Grep toàn bộ "euro"/"smooth" trong
+      tryon/*.py và prototype/tryon_demo.py không ra kết quả liên quan.
+  (4) Cache ảnh PNG kính: ĐÃ CÓ (1/5 kỹ thuật được áp dụng). consumers.py
+      giữ self._renderers = {} theo glasses_id, chỉ đọc file PNG + tự dò
+      tâm tròng kính MỘT LẦN cho mỗi mẫu kính trong 1 phiên kết nối.
+  (5) Giới hạn xử lý theo ROI quanh mắt: KHÔNG có. LightNormalizer (CLAHE)
+      chạy trên TOÀN BỘ khung hình ở mọi lúc (kể cả khi is_low_light() có
+      sẵn hàm kiểm tra nhưng KHÔNG được dùng để bật/tắt có điều kiện - CLAHE
+      luôn chạy vô điều kiện mỗi khung).
+  - Bằng chứng trực tiếp trong code (consumers.py, dòng 62-66, comment gốc):
+      "Chất lượng nén JPEG khi trả khung hình về client - 80 là mức cân
+      bằng phổ biến ..., CHƯA phải giá trị tối ưu độ trễ (việc đó thuộc
+      Giai đoạn 3 theo đúng kế hoạch đã chốt, xem CLAUDE_PROGRESS.md mục
+      24)."
+    -> Chính code tự xác nhận Giai đoạn 3 chưa làm.
+
+4) Có một số biện pháp giảm độ trễ CẢM NHẬN được áp dụng RIÊNG LẺ (không nằm
+   trong danh sách 5 kỹ thuật chính thức ở trên, nhưng có tác dụng thực tế)
+------------------------------------------------------------------------
+  File: static/js/tryon.js
+  - Giới hạn tốc độ CHỤP + GỬI khung ở phía client: khoảng 12,5 khung
+    hình/giây (CAPTURE_INTERVAL_MS = 80ms/khung) - đủ mượt cho webcam, tránh
+    gửi dồn dập vượt quá khả năng xử lý của server.
+  - Cơ chế "tránh dồn ứ hàng đợi" (backpressure): biến waitingForResponse
+    đảm bảo KHÔNG BAO GIỜ gửi khung mới khi khung trước CHƯA có phản hồi từ
+    server - đây là kỹ thuật đúng đắn để tránh độ trễ TÍCH LŨY ngày càng
+    tăng khi server xử lý không kịp (luôn ưu tiên khung MỚI NHẤT, bỏ qua
+    khung cũ thay vì xếp hàng đợi).
+  - Webcam giới hạn độ phân giải xin từ trình duyệt: 640x480 (không xin
+    full HD) - giảm dung lượng ảnh phải xử lý/truyền.
+  - Nén JPEG chất lượng 80% ở CẢ HAI CHIỀU gửi (client) và trả về (server).
+  Các biện pháp này giúp giảm độ trễ MẠNG/băng thông, nhưng KHÔNG giảm chi
+  phí xử lý CPU của chính bước nhận diện khuôn mặt (MediaPipe) - vốn là phần
+  nặng nhất trong pipeline và là đúng trọng tâm mà kế hoạch Giai đoạn 3 nhắm
+  tới.
+
+5) Độ trễ/độ mượt trên bản WEB THẬT — CHƯA TỪNG ĐƯỢC ĐO, kể cả 1 lần
+------------------------------------------------------------------------
+  CLAUDE_PROGRESS.md mục 26 (phần "Điều CHƯA thể tự kiểm tra") tự ghi nhận
+  rõ: "Độ trễ/độ mượt cảm nhận được (CHƯA tối ưu gì - đúng phạm vi đã chốt,
+  việc đo/tối ưu thuộc Giai đoạn 3 riêng, chưa làm trong phiên này)."
+  Rà toàn bộ các mục nhật ký sau đó (mục 27, 28, 29 - đều là sửa lỗi
+  giao diện/luồng camera: modal CSS, bỏ bắt đăng nhập, nút TRY ON, lỗi lộ
+  comment) - KHÔNG có mục nào đo lại FPS/độ trễ trên bản web hay báo cáo
+  bảng so sánh trước/sau như kế hoạch yêu cầu.
+  => Tức là: không chỉ chưa TỐI ƯU, mà việc ĐO ĐẠC độ trễ thực tế trên
+     đường đi thật (webcam trình duyệt -> JS -> WebSocket -> MediaPipe ->
+     JPEG -> trả về) cũng CHƯA TỪNG được thực hiện dù chỉ 1 lần.
+
+KẾT LUẬN TỔNG:
+Module thử kính ảo hiện chạy ĐÚNG CHỨC NĂNG (dán kính lên khuôn mặt qua
+webcam thời gian thực, có bảng chọn mẫu kính, tự động căn theo 2 điểm neo
+tâm tròng kính). Nhưng phần "chống độ trễ/giật lag" - được chính đề cương
+dự án xác định là TRỌNG TÂM CHẤM ĐIỂM của bài toán này - CHƯA được thực
+hiện có hệ thống theo đúng kế hoạch 5 kỹ thuật đã đề ra, và CHƯA có bất kỳ
+số liệu FPS/độ trễ nào đo trên chính bản web đang chạy (chỉ có baseline
+26,96 FPS đo trên prototype cục bộ, trước khi có mạng/WebSocket/nén JPEG
+hai lượt). Cần thực hiện "Giai đoạn 3" (đã có kế hoạch chi tiết sẵn trong
+CLAUDE_PROGRESS.md mục 11) nếu muốn đáp ứng đầy đủ yêu cầu này trước khi
+báo cáo/bảo vệ đồ án.

@@ -18,6 +18,7 @@ cả trang. Nếu không có header này (ví dụ JS bị tắt), view vẫn ho
 from django.contrib import messages
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 
 from products.models import Product
@@ -58,6 +59,7 @@ def _get_cart(request, create=True):
     return Cart.objects.filter(session_key=session_key, user=None).first()
 
 
+@never_cache  # tránh trình duyệt hiện lại giỏ hàng cũ qua back-forward cache (xem orders/views.py::my_orders)
 def cart_view(request):
     cart = _get_cart(request, create=False)
     items = cart.items.select_related("product", "product__category").all() if cart else []

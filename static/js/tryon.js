@@ -10,16 +10,6 @@ document.addEventListener("DOMContentLoaded", function () {
     initTryOn();
 });
 
-// #region DEBUG
-function debugLog(msg) {
-    try {
-        fetch("/__debug_log__/", { method: "POST", body: "[" + new Date().toISOString() + "] " + msg });
-    } catch (e) {
-        // im lang - debug logging khong duoc lam vo hieu luong chinh
-    }
-}
-// #endregion DEBUG
-
 function initTryOn() {
     var openBtn = document.querySelector("[data-tryon-open]");
     var modal = document.getElementById("tryon-modal");
@@ -38,10 +28,21 @@ function initTryOn() {
     var galleryItems = modal.querySelectorAll("[data-glasses-id]");
     var defaultGlassesId = openBtn.getAttribute("data-glasses-id");
 
-    // Gui toi da ~12 khung hinh/giay - du muot cho webcam, va quan trong hon
-    // la: KHONG BAO GIO gui khung moi khi khung truoc chua co phan hoi (co
-    // "waitingForResponse" ben duoi) - dung yeu cau muc 24 "tranh don u".
-    var CAPTURE_INTERVAL_MS = 80;
+    // Gui toi da ~25 khung hinh/giay - QUAN TRONG HON la: KHONG BAO GIO gui
+    // khung moi khi khung truoc chua co phan hoi (co "waitingForResponse"
+    // ben duoi) - dung yeu cau muc 24 "tranh don u", nen so nay CHI la TRAN
+    // TREN, toc do that su van do vong lap gui/nhan (waitingForResponse) tu
+    // dieu tiet theo dung nang luc server + mang.
+    //
+    // Gia tri nay TUNG la 80ms (~12,5 fps) - da GIAM XUONG 40ms sau Giai
+    // doan 3 (CLAUDE_PROGRESS.md muc 38-40): luc do server xu ly 1 khung
+    // ~30ms (chua toi uu), 80ms la hop ly; SAU KHI toi uu server chi con
+    // ~18-35ms/khung (do that qua WebSocket that, xem muc 41), 80ms gio la
+    // ĐIEM NGHEN CHINH - nguoi dung van thay tre du server da nhanh hon
+    // nhieu, vi client tu gioi han khong gui qua 12,5 lan/giay du server co
+    // the tra loi nhanh hon. 40ms (~25fps) tan dung dung toc do server that
+    // ma van con du bien an toan (server can ~20-35ms, thap hon 40ms).
+    var CAPTURE_INTERVAL_MS = 40;
     var JPEG_QUALITY = 0.8;
 
     var stream = null;
@@ -57,9 +58,6 @@ function initTryOn() {
     // camera" trung gian nua (yeu cau muc 28, Loi 4).
     openBtn.addEventListener("click", function () {
         modal.hidden = false;
-        // #region DEBUG
-        debugLog("[H2] click TRY ON -> goi startCamera()");
-        // #endregion DEBUG
         startCamera();
     });
 
@@ -105,30 +103,14 @@ function initTryOn() {
         navigator.mediaDevices
             .getUserMedia({ video: { width: 640, height: 480 }, audio: false })
             .then(function (mediaStream) {
-                // #region DEBUG
-                debugLog("[H2] getUserMedia() THANH CONG");
-                // #endregion DEBUG
                 stream = mediaStream;
                 video.srcObject = stream;
                 video.hidden = false;
                 placeholder.hidden = true;
                 statusEl.hidden = true;
-                // #region DEBUG
-                debugLog(
-                    "[H1] sau khi gan placeholder.hidden=true -> placeholder.hidden=" +
-                        placeholder.hidden +
-                        ", computed display=" +
-                        window.getComputedStyle(placeholder).display +
-                        ", offsetParent=" +
-                        (placeholder.offsetParent ? "CO-HIEN-THI" : "null(dang an)")
-                );
-                // #endregion DEBUG
                 connectSocket();
             })
             .catch(function (err) {
-                // #region DEBUG
-                debugLog("[H2] getUserMedia() THAT BAI: " + (err && err.name) + " - " + (err && err.message));
-                // #endregion DEBUG
                 var reason = err && err.message ? err.message : "quyền truy cập camera bị từ chối";
                 showCameraError("Không thể mở camera (" + reason + "). Vui lòng cho phép quyền camera trong trình duyệt rồi thử lại.");
             });
@@ -146,40 +128,24 @@ function initTryOn() {
         socket.binaryType = "arraybuffer";
 
         socket.addEventListener("open", function () {
-            // #region DEBUG
-            debugLog("[H4] websocket OPEN, gui select_glasses id=" + defaultGlassesId);
-            // #endregion DEBUG
             sendSelectGlasses(defaultGlassesId);
             captureTimer = window.setInterval(captureAndSend, CAPTURE_INTERVAL_MS);
         });
 
         socket.addEventListener("message", function (event) {
             if (typeof event.data === "string") {
-                // #region DEBUG
-                debugLog("[H4] nhan tin nhan TEXT (control/error): " + event.data);
-                // #endregion DEBUG
                 handleControlMessage(event.data);
                 return;
             }
             waitingForResponse = false;
-            // #region DEBUG
-            var _bytes = new Uint8Array(event.data);
-            debugLog("[H3] nhan khung binary, tong bytes=" + _bytes.length + ", faceDetected=" + (_bytes.length > 0 ? _bytes[0] === 1 : "N/A"));
-            // #endregion DEBUG
             renderFrame(event.data);
         });
 
         socket.addEventListener("error", function (ev) {
-            // #region DEBUG
-            debugLog("[H4] websocket ERROR event");
-            // #endregion DEBUG
             showStatus("Mất kết nối tới server xử lý ảnh. Vui lòng đóng và mở lại.");
         });
 
         socket.addEventListener("close", function (ev) {
-            // #region DEBUG
-            debugLog("[H4] websocket CLOSE code=" + ev.code + " reason=" + ev.reason + " wasClean=" + ev.wasClean);
-            // #endregion DEBUG
             waitingForResponse = false;
         });
     }

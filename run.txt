@@ -3,7 +3,7 @@ HƯỚNG DẪN CHẠY ĐỒ ÁN (Django + MySQL/XAMPP)
 
 Yêu cầu trước khi chạy:
 - Đã bật MySQL trong XAMPP Control Panel (hoặc chạy C:\xampp\mysql_start.bat)
-- Database "chuyendetn_db" đã tồn tại trong MySQL
+- Database "astraea_eyewear_db" đã tồn tại trong MySQL (tạo bằng lệnh bên dưới nếu chưa có)
 - Đã tạo file .env (copy từ .env.example) ở cùng cấp với manage.py
 
 1) Mở PowerShell tại thư mục dự án:
@@ -12,9 +12,18 @@ cd D:\DoAnTN
 2) Kích hoạt virtual environment (đã có sẵn trong .venv):
 .venv\Scripts\activate
 
-3) (Chỉ cần chạy khi models/database thay đổi) Tạo và áp migration:
-python manage.py makemigrations
+3) (Chỉ cần chạy lần đầu / khi database bị mất) Tạo database rỗng bằng MySQL client
+   của XAMPP (ví dụ: C:\xampp\mysql\bin\mysql.exe -u root -h 127.0.0.1 -P 3306), rồi chạy:
+CREATE DATABASE IF NOT EXISTS astraea_eyewear_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+   Sau đó áp migration (tạo bảng):
 python manage.py migrate
+
+   (Chỉ cần chạy khi models thay đổi mới cần makemigrations trước migrate)
+
+   Nếu database vừa tạo trống, nạp lại dữ liệu sản phẩm mẫu (không bắt buộc nhưng nên làm
+   để có sản phẩm hiển thị trên trang chủ):
+C:\xampp\mysql\bin\mysql.exe -u root -h 127.0.0.1 -P 3306 astraea_eyewear_db < seed_products.sql
 
 4) Chạy server phát triển:
 python manage.py runserver
@@ -29,6 +38,14 @@ Lệnh phụ hữu ích:
 - Tạo tài khoản admin (superuser): python manage.py createsuperuser
 - Trang quản trị: http://127.0.0.1:8000/admin/
 - Thoát venv: deactivate
+- Tạo lại dữ liệu ảo (15 user ảo + đơn hàng + 60 đánh giá sản phẩm kèm nhãn cảm xúc, dùng để demo
+  tính năng đánh giá/thống kê cảm xúc) - lệnh idempotent, chạy lại không tạo trùng:
+python manage.py seed_reviews
+  (nếu muốn xóa sạch 15 user ảo rồi tạo lại từ đầu: python manage.py seed_reviews --reset)
+  Mật khẩu chung của 15 user ảo: seed12345
+  LƯU Ý: PowerShell mặc định dùng codepage cp1252, dòng thông báo tiếng Việt cuối lệnh có thể lỗi
+  Unicode (UnicodeEncodeError) dù dữ liệu đã tạo thành công bình thường - chạy
+  "chcp 65001" trước, hoặc set $env:PYTHONIOENCODING="utf-8" trước khi chạy để thấy thông báo sạch.
 
 Tài khoản đăng nhập:
 - Admin (superuser):

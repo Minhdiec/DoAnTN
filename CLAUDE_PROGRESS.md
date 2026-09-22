@@ -3050,4 +3050,170 @@ thị dữ liệu riêng-theo-user nên cùng nguy cơ bị cache y hệt).
 `Cache-Control: max-age=0, no-cache, no-store, must-revalidate, private` sau khi thêm decorator
 (trước đó không có header này).
 
+---
 
+## 46. KHÔI PHỤC PROJECT SAU KHI XAMPP BỊ LỖI (database bị mất, không có backup)
+
+Người dùng báo XAMPP bị lỗi, đã tự sửa lại nhưng project không chạy được nữa.
+
+### Điều tra
+
+- MySQL (XAMPP) đã chạy lại bình thường (cổng 3306, `mysqld.exe`), venv (`.venv`) và code project
+  còn nguyên vẹn - vấn đề chỉ nằm ở database.
+- `SHOW DATABASES` xác nhận database `chuyendetn_db` KHÔNG còn tồn tại (chỉ còn các DB mặc định
+  của MySQL) - thư mục dữ liệu MySQL đã bị reset trong lúc sửa lỗi XAMPP.
+- Tìm kiếm toàn bộ project, Desktop, Downloads, ổ D, và `CLAUDE_PROGRESS.md` (lịch sử toàn bộ dự
+  án) - xác nhận project CHƯA TỪNG có quy trình backup/mysqldump database. File duy nhất người
+  dùng nhớ tới ("đã backup dữ liệu") thực ra là `seed_products.sql` (vốn đã có sẵn trong repo, chỉ
+  chứa dữ liệu sản phẩm mẫu, không phải bản dump toàn bộ DB).
+- **Kết luận**: dữ liệu ảo tạo lúc test trước đây (đơn hàng, tài khoản test, đánh giá...) không
+  thể khôi phục được vì không tồn tại bản backup nào. Đã báo rõ với người dùng trước khi tạo lại DB
+  (không tự ý xoá/tạo lại khi còn khả năng có dữ liệu thật - hỏi qua `AskUserQuestion` trước).
+
+### Đổi tên database + khôi phục schema + dữ liệu mẫu
+
+- Theo yêu cầu người dùng, đổi tên database từ `chuyendetn_db` sang `astraea_eyewear_db` (tiếng
+  Anh, gắn với "eyewear" - kính mắt, khớp tên dự án Astraea). Cập nhật `.env`, `.env.example`,
+  `core/settings.py` (giá trị mặc định của `get_env("DB_NAME", ...)`), và hướng dẫn trong
+  `run.txt`.
+- Tạo lại database rỗng (`CREATE DATABASE astraea_eyewear_db CHARACTER SET utf8mb4 COLLATE
+  utf8mb4_unicode_ci`), chạy `manage.py migrate` - áp toàn bộ migration sạch từ đầu.
+- Nạp `seed_products.sql` - gặp lỗi CHECK constraint `json_valid(specs)` vì cột `specs`
+  (`JSONField`, thêm ở migration `products.0003`, `default=dict` trong model) không được file seed
+  cũ set giá trị, MySQL dùng default ngầm `''` (không phải JSON hợp lệ). Sửa bằng
+  `ALTER TABLE products_product ALTER COLUMN specs SET DEFAULT ('{}')` (khớp đúng default của
+  model Django) rồi seed lại - thành công (2 danh mục, 4 sản phẩm).
+- Phát hiện `tryon_glassesoverlay` rỗng dù migration `tryon.0002_seed_sample_glasses` và
+  `tryon.0003_seed_dublin_glasses` đã "Applying...OK" - do 2 migration này chạy tra cứu `Product`
+  theo `slug` NGAY LÚC `migrate` (khi bảng `products_product` còn trống, seed sản phẩm chạy sau),
+  nên âm thầm bỏ qua (`except Product.DoesNotExist: continue`). Sửa bằng cách lùi migration `tryon`
+  về `0001` rồi áp lại (`migrate tryon 0001` → `migrate tryon`) SAU KHI đã có sản phẩm trong DB -
+  cả 3 bản ghi overlay (Incantation, Mythic, Dublin) được tạo đúng, khớp ảnh PNG thật đã có sẵn
+  trong `media/tryon/glasses/`.
+- Tạo lại 2 tài khoản demo đúng thông tin đã ghi trong `run.txt` (không đổi để người dùng không bị
+  bất ngờ): `admin` / `admin123` (superuser) và `Minh` / `user123` (user thường).
+
+### Tự kiểm tra bằng luồng thật
+
+`manage.py check` sạch. Khởi động server (`runserver 127.0.0.1:8000 --noreload`, đúng 2 PID như
+mọi lần trên máy Windows/Channels này) - `curl` xác nhận `GET /` trả `200` với đúng `<title>Astraea
+- Mua sắm trực tuyến</title>`, `GET /admin/login/` trả `200`. `authenticate()` xác nhận cả 2 tài
+khoản demo đăng nhập được đúng mật khẩu. Đã cập nhật `server.pid` với PID mới, cập nhật `run.txt`
+bổ sung bước tạo database (bị thiếu trong bản hướng dẫn cũ - có thể là nguyên nhân khiến lần trước
+không chạy lại được sau khi cài XAMPP mới).
+
+
+
+### Tiếp theo cùng phiên: tạo lại dữ liệu ảo (user/đơn hàng/đánh giá)
+
+Người dùng báo tiếp: 15 user ảo, đơn hàng ảo, đánh giá/bình luận sản phẩm cũng mất theo (cùng
+nguyên nhân - database bị reset, không có backup). Không cần viết lại từ đầu vì đã có sẵn
+management command `reviews/management/commands/seed_reviews.py` (viết từ BƯỚC 6, mục 30) -
+idempotent, tự phát hiện user/sản phẩm chưa có đánh giá rồi tạo bù, đúng thiết kế cho tình huống
+này.
+
+- Chạy `python manage.py seed_reviews` - transaction commit thành công (15 user ảo, 15 đơn hàng
+  `DELIVERED`, 60 đánh giá = 15 user × 4 sản phẩm đang bán), NHƯNG lệnh thoát với
+  `UnicodeEncodeError` khi in dòng thông báo tổng kết cuối cùng (tiếng Việt có dấu) ra console
+  PowerShell mặc định dùng codepage `cp1252` - lỗi này xảy ra SAU khi `with transaction.atomic()`
+  đã đóng, tức chỉ là lỗi hiển thị, dữ liệu đã ghi DB thành công. Xác minh lại bằng truy vấn SQL
+  trực tiếp (đếm user/order/review thật trong DB, không tin traceback) - đúng 15/15/60, phân bố
+  cảm xúc POS 28 · NEU 14 · NEG 18 (khớp tỉ lệ ~60/16/24% thiết kế trong file). Chạy lại lần 2 với
+  `PYTHONIOENCODING=utf-8` ra thông báo sạch "0 đánh giá mới" - xác nhận lệnh idempotent, không
+  tạo trùng.
+- Kiểm tra qua `curl` trang chi tiết sản phẩm thật (`/san-pham/incantation-black/`) - nội dung
+  đánh giá tiếng Việt hiển thị đúng, không lỗi font (UTF-8 nguyên vẹn từ MySQL utf8mb4 tới HTML).
+- Đã ghi chú lại trong `run.txt` (lệnh `seed_reviews`, mật khẩu chung `seed12345` của 15 user ảo,
+  và cảnh báo `UnicodeEncodeError` vô hại này) để không bị hiểu lầm là lỗi thật ở lần chạy sau.
+
+---
+
+## 48. CẬP NHẬT TOÀN BỘ BÁO CÁO ĐỒ ÁN (ERD + 31 ẢNH CHƯƠNG 5 + SỐ LIỆU) SAU KHI CHẠY LẠI HỆ THỐNG
+
+Người dùng yêu cầu: chụp lại toàn bộ chức năng cho báo cáo, vẽ lại ERD từ database thật kèm
+xuất file `.drawio`, chụp lại ảnh chạy trên local rồi chèn vào Word, sửa nội dung Word cho khớp
+thực tế, đối chiếu từng chức năng với code.
+
+### Đọc và đối chiếu báo cáo gốc trước khi sửa
+
+Trích xuất toàn bộ text từ `Bao_cao_chuyen_de_TN_Nguyen_Thi_Hong_Minh_25410256.docx` (không có
+sẵn `pandoc`/LibreOffice trên máy - tự viết script đọc thẳng `word/document.xml` bằng regex thay
+vì cài thêm công cụ). Xác nhận báo cáo gốc đã rất chi tiết, chính xác, bám sát code (có cả bảng so
+sánh 3 mô hình ML, bảng đo FPS thực nghiệm, đối chiếu đặc tả gốc vs code ở mục 6.2) - việc cần làm
+là cập nhật lại ảnh + số liệu cho khớp dữ liệu vừa tạo lại (mục 46, 47), không phải viết lại nội
+dung.
+
+### Sơ đồ ERD (mục 3.4)
+
+Lấy schema thật từ `information_schema.COLUMNS`/`KEY_COLUMN_USAGE` của `astraea_eyewear_db` (14
+bảng nghiệp vụ, đúng số bảng báo cáo đã nêu, không tính 2 bảng M2M hệ thống của Django). Dựng sơ
+đồ bằng cú pháp Mermaid `erDiagram` (chỉ liệt kê cột PK/FK đúng quy ước đã có trong báo cáo), render
+bằng `npx @mermaid-js/mermaid-cli` (đã có sẵn, không cần cài Graphviz/drawio desktop) - lần đầu
+nhãn quan hệ mất dấu tiếng Việt do tự bỏ dấu phòng lỗi font, kiểm tra lại thấy font hỗ trợ đầy đủ
+nên viết lại có dấu, render sạch. Viết riêng script Python sinh file `.drawio` (mxGraph XML, dạng
+bảng thực thể + cạnh `entityRelationEdgeStyle` ký hiệu crow's-foot) từ cùng một schema, validate
+bằng `xml.etree` (126 mxCell, 107 vertex, 17 edge, đúng 14 bảng + 17 quan hệ). Xuất
+`Astraea_ERD.drawio` và `Astraea_ERD.png` ở gốc project.
+
+### Chụp lại 31/32 hình Chương 5 bằng Playwright (Edge, `channel="msedge"`)
+
+- Đăng ký tài khoản thử `hoangnam` (giữ đúng username bản gốc để khỏi lệch câu chuyện), luồng quên
+  mật khẩu cho Minh (đặt lại đúng `user123`), trang chủ, tìm kiếm, chi tiết sản phẩm, giỏ hàng,
+  thanh toán, đơn hàng, huỷ đơn, yêu thích, hồ sơ, toàn bộ 11 trang quản trị (Django Admin).
+- Lỗi gặp phải và cách sửa (đáng chú ý vì có thể lặp lại):
+  - Selector `button[type="submit"]` không scope theo form nên bấm nhầm nút tìm kiếm ở header
+    (mọi trang đều có) thay vì nút submit thật của form đăng ký/quên-mật-khẩu - sửa bằng cách
+    scope đúng form chứa input đặc trưng, ví dụ `form:has(input[name="password1"])`.
+  - Cửa sổ thanh toán không tự điền địa chỉ/SĐT vì hồ sơ Minh đang trống 2 trường này (chỉ có ở
+    profile thật, không phải dữ liệu seed) - trường bắt buộc (`required`) khiến submit bị chặn
+    im lặng phía trình duyệt, không lỗi rõ ràng. Phải tự điền tường minh 2 trường này.
+  - Nút chọn sao đánh giá không phải radio input như đoán ban đầu mà là `<button data-star-value>`
+    set giá trị vào 1 `<input type="hidden" name="rating">` bằng JS (`review-form.js`) - phải bấm
+    đúng nút, không set value trực tiếp qua input.
+  - Phát hiện đơn hàng #16 (Incantation) đã tồn tại sẵn cho tài khoản Minh - đây là đơn THẬT do
+    người dùng tự đặt khi test trên trình duyệt trước khi nhờ chạy lại, không phải dữ liệu seed.
+    Do không biết trước, bước demo "huỷ đơn hàng" của kịch bản tự động đã lỡ huỷ đúng đơn này.
+    Đã báo lại rõ với người dùng, không tự ý làm gì thêm (không có cách hoàn tác huỷ đơn).
+  - Sau đó tạo lại đúng kịch bản 2 đơn tách biệt: đơn Dublin + Mythic (#18) GIỮ NGUYÊN giao thành
+    công để dùng demo viết đánh giá (mục 5.9/5.10), đơn Impossible riêng (#19) mới huỷ để demo
+    "sau khi huỷ" (mục 5.17) - không đụng tới đơn #18 nữa.
+  - Viết đánh giá thật qua giao diện (Mythic 5 sao, Dublin 2 sao), `predict_sentiment()` tự gán
+    nhãn NEG cho Dublin với độ tin cậy chỉ 0,446 (do câu than phiền nhẹ, không gay gắt) - số liệu
+    thật, không chỉnh sửa.
+- 2 hình KHÔNG chụp lại được đúng nội dung gốc: Hình 5.11/5.12 (thử kính ảo với kính dán lên mặt
+  thật) - máy chạy Playwright không có webcam thật, thử dùng camera giả của Chromium
+  (`--use-fake-device-for-media-stream`) nhưng chỉ cho hình test pattern (không có khuôn mặt) nên
+  MediaPipe không nhận diện được, không có kính dán lên. Ảnh đã lưu vẫn cho thấy giao diện modal
+  hoạt động đúng (kết nối WebSocket, đổi mẫu kính) nhưng KHÔNG dùng để thay hình 5.11/5.12 trong
+  báo cáo - đã báo người dùng tự chụp 2 hình này bằng webcam thật nếu muốn cập nhật.
+- Ảnh quá dài (`full_page=True` trên trang chi tiết sản phẩm và trang danh sách 63 đánh giá) được
+  cắt bớt bằng Pillow trước khi chèn, ảnh đơn hàng (5.16/5.17) cắt bớt phần đơn cũ không liên quan
+  để đỡ rối.
+
+### Chèn ảnh vào docx và cập nhật số liệu
+
+Không có `pandoc`/LibreOffice trên máy nên không tự render PDF xem trước được - sửa XML thô và
+validate bằng schema, người dùng tự mở Word/WPS xem lại lần cuối. Phát hiện quan hệ `hinh_N.png`
+(N=1..32) khớp tuần tự đúng thứ tự Hình 3.1→5.30 (xác nhận qua `document.xml.rels` và thứ tự
+`r:embed` trong `document.xml`) nên chỉ cần GHI ĐÈ file ảnh cùng tên, không cần sửa quan hệ XML -
+trừ Hình 3.1 (sơ đồ use case, giữ nguyên vì không đổi). Vì ảnh mới có tỉ lệ khung hình khác ảnh cũ,
+phải tính lại `cx/cy` (2 chỗ mỗi ảnh: `wp:extent` và `a:xfrm><a:ext`, giá trị trùng nhau) theo đúng
+tỉ lệ thật, không thì ảnh bị méo.
+
+Cập nhật 10 chỗ số liệu cụ thể trong văn bản cho khớp dữ liệu vừa tạo lại (tên database, số đơn
+hàng #16→#18/#19, số lượng/tổng tiền giỏ hàng, điểm trung bình và tỉ lệ cảm xúc của Mythic/Dublin,
+tồn kho Dublin, thống kê 63 đánh giá ở trang quản trị) và thêm 2 mục mới (7, 8) vào phần "Một số
+vấn đề ghi nhận khi cài đặt lại hệ thống" (mục 5.10) mô tả đúng 2 lỗi thật gặp phải lần này (mất
+toàn bộ dữ liệu MySQL, và ràng buộc CHECK `json_valid` của cột `specs`) - đồng thời SỬA THẬT file
+`seed_products.sql` (thêm `sku='', specs='{}', care_instructions=''` vào 3 câu INSERT đầu) đúng như
+mục 1 báo cáo đã đề xuất nhưng trước đó chưa từng được áp dụng vào file.
+
+### Tự kiểm tra
+
+`xml.etree` xác nhận `document.xml` hợp lệ sau mọi lần sửa. Đóng gói lại bằng `zipfile` (Python,
+không có `zip` CLI trên máy), validate bằng script `validate.py` của skill docx (cần cài tạm
+`lxml` vào venv rồi gỡ lại ngay sau khi xong, không để lại trong `requirements.txt`) - "All
+validations PASSED", 1160 đoạn văn, đủ 32 file ảnh trong `word/media/`. Đọc lại `document.xml` từ
+chính file `.docx` cuối cùng (không phải thư mục nháp) để xác nhận cả 8 câu text đã sửa và 2 mục
+mới đều có mặt. Đã sửa `run.txt` (mật khẩu Minh bị ghi nhầm thành "/" trong lần người dùng tự sửa
+trước đó, khôi phục lại `user123` - khớp đúng test thật qua `authenticate()`/Playwright).

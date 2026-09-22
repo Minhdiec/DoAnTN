@@ -187,7 +187,7 @@ CHANNEL_LAYERS = {
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": get_env("DB_NAME", "chuyendetn_db"),
+        "NAME": get_env("DB_NAME", "astraea_eyewear_db"),
         "USER": get_env("DB_USER", "root"),
         "PASSWORD": get_env("DB_PASSWORD", ""),
         "HOST": get_env("DB_HOST", "127.0.0.1"),

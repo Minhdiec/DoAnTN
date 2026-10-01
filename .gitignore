@@ -28,3 +28,7 @@ scratch_unpacked/
 # Model MediaPipe (~3.6MB, file nhị phân tải từ Google, không phải source code
 # tự viết) - tải lại bằng URL ghi trong CLAUDE_PROGRESS.md mục 4 nếu máy khác cần.
 prototype/models/*.task
+
+# Thư mục nháp giải nén docx (các biến thể scratch_*) và file PID của server dev
+scratch_*/
+server.pid

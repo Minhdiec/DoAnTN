@@ -12,7 +12,7 @@
         trình duyệt có thể tiếp tục hiển thị CSS cũ dù server đã có bản mới
         (đúng nguyên nhân của một số lỗi hiển thị đã gặp, xem BUG.ipynb).
     {% endcomment %}
-    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=4">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=7">
     {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -160,7 +160,6 @@
     </div>
     <div class="container footer-bottom">
         <span>&copy; {% now "Y" %} Astraea. Đồ án chuyên đề tốt nghiệp.</span>
-        <span>Được xây dựng với Django</span>
     </div>
 </footer>
 

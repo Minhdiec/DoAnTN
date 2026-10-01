@@ -63,4 +63,6 @@ Ghi chú:
 - Dự án dùng Django Channels + Daphne (cho module thử kính ảo qua webcam),
   nên "python manage.py runserver" sẽ tự chạy qua Daphne (ASGI) thay vì
   server WSGI mặc định - không cần lệnh nào khác.
-- Nếu chưa cài thư viện: pip install -r requirements.txt
+- Nếu chưa cài th
+
+ư viện: pip install -r requirements.txt

@@ -122,3 +122,10 @@
 </section>
 
 {% endblock %}
+
+{% block extra_scripts %}
+    {% if tryon_gallery %}
+        {% include "products/_tryon_modal.html" %}
+        <script src="{% static 'js/tryon.js' %}?v=5"></script>
+    {% endif %}
+{% endblock %}

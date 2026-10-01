@@ -3217,3 +3217,518 @@ validations PASSED", 1160 đoạn văn, đủ 32 file ảnh trong `word/media/`.
 chính file `.docx` cuối cùng (không phải thư mục nháp) để xác nhận cả 8 câu text đã sửa và 2 mục
 mới đều có mặt. Đã sửa `run.txt` (mật khẩu Minh bị ghi nhầm thành "/" trong lần người dùng tự sửa
 trước đó, khôi phục lại `user123` - khớp đúng test thật qua `authenticate()`/Playwright).
+
+## 49. NHẬT KÝ PHIÊN LÀM VIỆC — Rà soát lần 2: tách bảng dữ liệu, sửa mục 1.3, file hướng dẫn đồ án
+
+Người dùng gửi lại một danh sách yêu cầu dài (một phần đã làm ở phiên trước, một phần mới). Rà
+từng ý theo đúng thứ tự người dùng liệt kê, đối chiếu với file thật trước khi báo đã xong hay
+chưa - không tự nhận đã làm nếu chưa kiểm tra lại.
+
+### Việc ĐÃ LÀM ở phiên trước, kiểm tra lại thấy còn nguyên trong bản mới nhất
+
+- Tách bảng mô tả dữ liệu (mục 3.5) thành 1 bảng/1 thực thể, không gộp chung (vd Category, Product,
+  ProductImage từng là 1 bảng, nay là 3 bảng riêng: mục 3.5.1-3.5.15, `Bảng 3.3`-`Bảng 3.17`).
+- Bỏ câu nhắc tên Node.js ở mục Yêu cầu môi trường (dự án không dùng Node.js).
+- Xoá hẳn mục "5.10. Một số vấn đề ghi nhận khi cài đặt lại hệ thống".
+- Thêm ý mới vào Hướng phát triển: nhận diện cảm xúc khuôn mặt (vui/buồn) hiển thị ngay trên màn
+  hình lúc thử kính ảo, dựa trên landmark có sẵn từ MediaPipe FaceLandmarker.
+- Tạo file `HUONG_DAN_HIEU_DO_AN.md` giải thích 2 mô-đun AI (thử kính ảo, phân tích cảm xúc) dựa
+  trên đọc thật code (`tryon/vision.py`, `tryon/consumers.py`, `static/js/tryon.js`,
+  `reviews/ml/sentiment.py`, `phantichcamxuc/sentiment_analysis.ipynb`) - không bịa.
+
+### Phát hiện quan trọng: người dùng đã tự chạy script riêng để đóng gói tiếp
+
+File đích người dùng nhắc lần này đổi thành `...Copy.final.docx`, không phải `...Copy.docx` như
+trước. Đọc `scripts/revise_report_docx.py` (người dùng tự viết bằng `python-docx`, không phải
+Claude Code) mới hiểu: script này đọc `Copy.docx` (bản đã tách bảng ở phiên trước) làm nguồn, rồi
+tự động xoá bớt 19 hình Chương 5 dư thừa, đánh số lại Hình/Bảng, xoá mục "6.2. Đối chiếu...", đánh
+số lại Chương 6 (6.3→6.2, 6.4→6.3, 6.5→6.4 - **bảng "Hướng phát triển" giờ là mục 6.4, không phải
+6.5 nữa**), sửa vài lỗi chính tả (`hoá`→`hóa`...), viết lại "TÀI LIỆU THAM KHẢO" theo định dạng
+[1]-[10], và co giãn kích thước ảnh - xuất ra `Copy.final.docx`. Đây là công việc riêng của người
+dùng, không phải Claude Code tạo ra; không đụng vào 4 file `scripts/generate_erd_drawio.py`,
+`scripts/revise_report_docx.py`, `Astraea_ERD_from_DB.drawio` vì đã hỏi và người dùng xác nhận đây
+là việc đang làm dở riêng, không đưa vào lần push git trước đó.
+
+Kiểm tra lại toàn bộ `Copy.final.docx`: mọi việc đã làm ở phiên trước (tách bảng, bỏ Node.js, xoá
+5.10, thêm ý Hướng phát triển) đều còn nguyên sau khi qua script của người dùng - không bị mất gì.
+
+### Việc MỚI làm trong phiên này (trên `Copy.final.docx`)
+
+- **Mục 1.3.1. Phạm vi dữ liệu** - viết lại câu về dữ liệu sản phẩm theo cách khác (người dùng đã
+  tự bỏ bớt số liệu "2 danh mục (Oval, Square) và 4 sản phẩm" ở bản họ đang giữ - giữ nguyên đúng
+  như vậy, không tự thêm lại số cũ): "Sản phẩm được nhập thủ công theo danh mục dáng gọng, đủ số
+  lượng để chạy thử các chức năng của hệ thống. Riêng sản phẩm Dublin có đầy đủ mô tả tiếng Việt,
+  mã SKU, thông số kỹ thuật và hướng dẫn bảo quản, nên được chọn làm ví dụ chính khi trình bày chức
+  năng thử kính ảo." Câu về mô hình phân loại cảm xúc (31.460/26.706 dòng) giữ nguyên, không đổi.
+- **Mục 1.3.2. Phạm vi chức năng** - bỏ dấu ngoặc đơn và bỏ câu dẫn sang chương khác (người dùng
+  lưu ý đang ở mục 1.3.2 thì không nên nhắc "chi tiết ở Chương 6" vì gây lan man): đổi câu "Ví điện
+  tử (nạp tiền, thanh toán bằng số dư) mới có ở tầng cơ sở dữ liệu và nghiệp vụ, chưa được nối vào
+  giao diện và luồng thanh toán; chi tiết ở Chương 6." thành "Ví điện tử cho phép nạp tiền và thanh
+  toán bằng số dư, hiện mới có ở tầng cơ sở dữ liệu và nghiệp vụ, chưa được nối vào giao diện và
+  luồng thanh toán." - tự đứng một mình trong mục này, không cần đọc mục 6.3 (Hạn chế) mới hiểu.
+- Sửa trực tiếp `word/document.xml` bằng `lxml` (không dùng `python-docx` để tránh phải cài lại
+  thư viện và tránh làm hỏng phần định dạng script kia vừa chỉnh), rồi đóng gói lại bằng `zipfile`,
+  validate bằng script `validate.py` của skill docx - "All validations PASSED", 1349 đoạn văn.
+
+### Việc CHƯA xong / cần người dùng làm tiếp
+
+- File đích bị khoá (đang mở trong Word) nên chưa ghi đè được `Copy.final.docx` - bản đã sửa đang
+  nằm tạm ở `Copy.final.new.docx`, cần đóng Word rồi đổi tên file (hoặc nhờ chạy lại) để thay thế.
+- Chưa áp 2 câu sửa ở mục 1.3 này sang `Copy.docx` (bản trước khi qua script polish của người dùng)
+  - nếu người dùng còn dùng file đó thì cần sửa thêm, nhưng hiện tại `Copy.final.docx` mới là file
+  đang dùng thật (theo đúng file người dùng @ trong yêu cầu lần này).
+
+## 50. NHẬT KÝ PHIÊN LÀM VIỆC — Xoá dòng "Được xây dựng với Django" ở footer, chuẩn bị sửa số trang Mục lục
+
+Người dùng yêu cầu: xoá chữ "được xây dựng bởi Django" ở chân trang web, chụp lại ảnh chân trang
+sau khi sửa, và sửa Mục lục báo cáo cho khớp đúng số trang thật.
+
+### Đã làm
+
+- `templates/base.html` dòng 163: xoá hẳn `<span>Được xây dựng với Django</span>` trong
+  `.footer-bottom` (chỉ còn dòng `© {% now "Y" %} Astraea. Đồ án chuyên đề tốt nghiệp.`). Đây là
+  sửa template nên không cần restart server (Django đọc lại template từ đĩa mỗi request ở chế độ
+  DEBUG).
+- Xác nhận server dev đang chạy sẵn ở cổng 8000 (PID 4448, không khớp `server.pid` cũ - file đó là
+  rác từ phiên trước, không xoá vì không chắc còn tiến trình nào khác phụ thuộc).
+- Dùng Playwright (`channel="msedge"`) đăng nhập bằng tài khoản `Minh`/`user123`, chụp lại
+  `footer.site-footer` ở trang chủ sau khi đăng nhập - xác nhận bằng mắt: không còn dòng Django,
+  vẫn còn đúng dòng bản quyền. Ảnh lưu tạm ở thư mục scratchpad phiên (không phải trong repo),
+  người dùng chọn KHÔNG cần chèn ảnh này vào báo cáo Word.
+
+### Phát hiện quan trọng: Mục lục dùng field PAGEREF thật của Word, không phải text gõ tay
+
+Mở `word/document.xml` của `Bao_cao_chuyen_de_TN_Nguyen_Thi_Hong_Minh_25410256 - Copy.final.docx`
+ra xem: phần "MỤC LỤC" là field Word thật (`TOC \h \o "1-3"`, mỗi dòng có
+`PAGEREF _TocXXXX \h` với số trang đã CACHE sẵn dạng text, vd `2`, `3`, `4`...). Số trang cache
+này chỉ tự cập nhật khi Word tính lại field (mở file kèm cấu hình auto-update, hoặc bấm Ctrl+A rồi
+F9). Sau khi script `revise_report_docx.py` của người dùng xoá bớt 19 ảnh + đổi số mục ở lần chạy
+trước, layout trang đã đổi nhưng số trang cache trong Mục lục CHƯA được tính lại nên có thể bị
+lệch so với trang thật.
+
+Kiểm tra bằng COM automation (`win32com.client.GetActiveObject('Word.Application')`, cài tạm
+`pywin32` vào `.venv` - CHƯA gỡ lại, cần gỡ sau khi xong việc): file `Copy.final.docx` đang được
+người dùng mở SẴN trong đúng cửa sổ Word đang chạy (`D:\DoAnTN\Bao_cao_chuyen_de_TN_Nguyen_Thi_Hong_Minh_25410256 - Copy.final.docx`),
+và `Document.Saved = False` (đang có thay đổi chưa lưu ngay lúc kiểm tra). Cửa sổ Word đó còn mở
+thêm 1 file khác không thuộc repo này (`D:\DH CNTT\Chuyên Đề Tốt Nghiệp\word\Bao_cao_chuyen_de_TN_Nguyen_Thi_Hong_Minh_25410256.docx`) - không đụng vào file đó.
+
+- Người dùng xác nhận KHÔNG cần chèn ảnh chân trang mới vào báo cáo Word - chỉ cần sửa code +
+  chụp ảnh xác nhận là đủ, phần này coi như xong.
+
+### Cập nhật: đã đóng Word, sửa xong số trang Mục lục
+
+Người dùng tự lưu và đóng Word xong, báo lại tiếp tục. Xác nhận qua `tasklist` không còn tiến
+trình `WINWORD.EXE` và file khoá `~$...` cũng biến mất trước khi động vào file.
+
+Dùng lại COM automation (`win32com.client.DispatchEx('Word.Application')`, `Visible=False`) mở
+`Copy.final.docx`, gọi `doc.Repaginate()` + `doc.Fields.Update()` + `TablesOfContents(i).Update()`
+cho từng bảng mục lục + `doc.Repaginate()` + `doc.Fields.Update()` lần nữa, rồi `doc.Save()`.
+`ComputeStatistics` báo 58 trang trước/sau (nội dung không đổi, chỉ số trang cache trong field được
+tính lại).
+
+**Tự kiểm tra kỹ trước khi tin kết quả** (vì lần đo đầu dùng nhầm hằng số
+`wdActiveEndPageNumber` cho ra số trang tuyệt đối tính từ đầu file, lệch cố định +9 so với Mục lục
+- tưởng nhầm là bug, thật ra không phải): đo lại đúng bằng
+`Range.Information(wdActiveEndAdjustedPageNumber=1)` (số trang ĐÃ tính theo field `PAGE` hiển thị
+thật, tôn trọng việc phần nội dung chương đánh số lại từ trang 1 sau khi phần mở đầu - nhận xét,
+lời cảm ơn, mục lục, danh mục hình/bảng... - dùng numbering riêng) tại đúng 6 heading "CHƯƠNG
+1"-"CHƯƠNG 6" trong thân bài: kết quả khớp CHÍNH XÁC với số trang cache mới trong Mục lục
+(Chương 1→1, Chương 2→5, Chương 3→8, Chương 4→23, Chương 5→35, Chương 6→47; NHẬN XÉT→2, MỤC LỤC→4)
+- xác nhận Mục lục giờ đã khớp đúng số trang thật, không còn lệch.
+
+Chạy `validate.py` của skill docx báo 2 lỗi schema mới trong `styles.xml` (thứ tự phần tử
+`uiPriority` trong định nghĩa style) - đây là lỗi format nội bộ do chính Word ghi ra khi lưu (không
+phải do sửa tay XML), Word tự đọc lại được bình thường; không phải regression đáng lo vì Word là
+nguồn ghi ra file, không phải script tự chế.
+
+Gỡ `pywin32` khỏi `.venv` ngay sau khi xong (`pip uninstall pywin32 -y`) - xác nhận
+`requirements.txt` không hề bị đụng vào trong suốt quá trình (không cần sửa lại gì).
+
+### Việc CHƯA xong
+
+Không còn - cả 3 việc người dùng yêu cầu (xoá dòng Django ở footer, chụp ảnh xác nhận, sửa số
+trang Mục lục cho khớp trang thật) đã xong trong phiên này.
+
+## 51. NHẬT KÝ PHIÊN LÀM VIỆC — Xoá đường kẻ viền dưới header (bug từ ảnh `bug_promtp/header.png`)
+
+Người dùng gửi ảnh chụp Word đang mở, khoanh đỏ 1 đường kẻ ngang nằm trong vùng header (phía trên
+dòng "ĐẠI HỌC QUỐC GIA TP. HỒ CHÍ MINH" ở trang bìa), yêu cầu xoá khỏi toàn bộ docx.
+
+### Nguyên nhân
+
+Không phải viền trang (page border) - dùng COM (`win32com.client`, cài tạm `pywin32` lần nữa, đã
+gỡ lại sau khi xong) kiểm tra trực tiếp `Section.Headers(wdHeaderFooterPrimary).Range.Paragraphs`
+thì thấy đoạn văn header (text "Báo cáo chuyên đề tốt nghiệp") có **viền DƯỚI** (`Borders(wdBorderBottom).LineStyle = 1`, tức `wdLineStyleSingle`) trong khi Top/Left/Right đều `wdLineStyleNone`
+- đây chính là đường kẻ nhìn thấy trong ảnh.
+
+### Đã sửa ở 2 file
+
+- File người dùng đang mở trực tiếp (KHÔNG thuộc repo này):
+  `D:\DH CNTT\Chuyên Đề Tốt Nghiệp\word\Bao_cao_chuyen_de_TN_Nguyen_Thi_Hong_Minh_25410256.docx` -
+  gắn COM vào ĐÚNG cửa sổ Word đang chạy (`GetActiveObject`, không mở instance mới) để sửa trực
+  tiếp trên document đang hiển thị cho người dùng (không cần đóng/mở lại) - set `LineStyle =
+  wdLineStyleNone` cho viền dưới, `Save()`. Chỉ có 1 section trong file này.
+- `Bao_cao_chuyen_de_TN_Nguyen_Thi_Hong_Minh_25410256 - Copy.final.docx` (file trong repo,
+  người dùng xác nhận muốn sửa luôn): mở bằng instance Word ẩn riêng (`DispatchEx`, `Visible=False`,
+  không đụng tới cửa sổ người dùng đang mở), quét TẤT CẢ section (file này có **2 section**, khác
+  file kia chỉ có 1) x TẤT CẢ loại header (Primary/FirstPage/Even) - cả 2 section đều có cùng lỗi
+  viền dưới ở header "Báo cáo chuyên đề tốt nghiệp", xoá cả 2, lưu lại.
+
+Gỡ `pywin32` khỏi `.venv` ngay sau khi xong (không để lại trong `requirements.txt`).
+
+### Chưa làm / không được yêu cầu
+
+Không đụng đến `Copy.docx` (bản trước khi qua script polish) hay các file docx khác trong repo
+(`Astraea_DataDictionary*.docx`, `Bao_cao_do_an_phan_tich.docx`) - người dùng chỉ xác nhận phạm vi
+là file `Copy.final.docx` và file đang mở ở `D:\DH CNTT\...`.
+
+## 52. NHẬT KÝ PHIÊN LÀM VIỆC — Sửa báo cáo theo 10 yêu cầu của giảng viên hướng dẫn (Việc 1-7)
+
+Người dùng gửi danh sách 10 yêu cầu (thực tế nhận được mục 2-10, mục 1 không có trong nội dung dán
+vào) của giảng viên hướng dẫn về `Copy.final.docx`, kèm 7 việc cụ thể cần làm (đặt tên Việc 1-7
+trong yêu cầu gốc). Tạo backup `Copy.final.BACKUP_20260922_202434.docx` trước khi sửa gì.
+
+### PHÁT HIỆN MẤT DỮ LIỆU do phiên trước (đã khôi phục)
+
+Khi mở lại `Copy.final.docx` để làm Việc 6, phát hiện mục "TÀI LIỆU THAM KHẢO" **trống hoàn toàn**
+(chỉ còn tiêu đề) - trong khi lúc bắt đầu phiên #50/#51 file vẫn còn đủ 10 mục [1]-[10]. Nghi ngờ
+hợp lý nhất: thao tác `doc.Fields.Update()` + `TablesOfContents.Update()` trên toàn văn bản qua COM
+ở phiên #50 (để sửa số trang Mục lục) đã làm hỏng vùng field cuối văn bản và xoá mất đoạn này -
+không chắc chắn 100% cơ chế, nhưng không còn nghi ngờ nào khác hợp lý hơn. Khôi phục đầy đủ từ
+`scratch_unpacked_final2/word/document.xml` (rác còn sót từ phiên làm việc CỦA NGƯỜI DÙNG trước cả
+khi Claude Code vào việc) - lấy lại nguyên vẹn cả 10 mục gốc, không mục nào có dấu hiệu bịa. Đã báo
+người dùng ngay khi phát hiện, trước khi làm tiếp.
+
+### Việc 1: Giải thích tên bảng "(products)" - ĐÃ TRẢ LỜI, CHƯA ÁP DỤNG
+
+Giải thích: phần trong ngoặc là tên app Django sở hữu model/bảng đó (Django tổ chức code theo từng
+"app" độc lập, mỗi app có thể có models.py/admin.py riêng) - không phải một phần tên bảng thật.
+Đề xuất đổi thành "(thuộc app products)" cho rõ nghĩa hơn với người không biết Django. **CHƯA áp
+dụng vào 15 bảng 3.3-3.17** vì người dùng yêu cầu chỉ áp dụng sau khi đồng ý - đang chờ xác nhận.
+
+### Việc 2: Cập nhật file tiến độ - xem bảng bên dưới (mục Việc 7)
+
+### Việc 3: Viết lại 1.2. Mục tiêu đề tài - ĐÃ XONG
+
+Đọc `DeCuong_CDTN_NguyenThiHongMinh_25410256.pdf` (8 mục tiêu cụ thể trong đề cương, ngôn ngữ dự
+kiến/nghiên cứu chung chung). Viết lại toàn bộ 1.2.1 (tổng quát) và 1.2.2 (cụ thể, 7 bullet cũ +
+thêm 1 bullet mới về bảo mật - đề cương có nêu mục tiêu bảo mật nhưng báo cáo cũ chưa liệt kê) theo
+hướng THUẬT LẠI kết quả thật đã đạt được (có số liệu đo đạc: 33,3 lên 54,4 FPS, 26.706 bình luận,
+macro-F1, PBKDF2...) thay vì ngôn ngữ dự kiến của đề cương - khác biệt rõ về văn phong và độ cụ thể
+mà vẫn khớp đúng những gì Chương 4-5 đã trình bày, không bịa thêm tính năng nào chưa có thật.
+
+### Việc 4: Đánh số hình mục 5.3 - ĐÃ XONG
+
+Tìm đúng 1 ảnh chưa có chú thích (rId15/image7.png, ảnh "Kết quả tìm kiếm cho 'my'" - trang kết quả
+tìm kiếm sản phẩm Mythic). Thêm "Hình 5.4. Trang kết quả tìm kiếm sản phẩm" + đoạn mô tả, đánh số
+lại toàn bộ 9 hình phía sau (cũ 5.4→5.13, mới 5.5→5.13), cập nhật cả Danh mục hình. Xác nhận sau
+khi sửa: đúng 13 hình 5.x, mỗi hình đúng 2 lần xuất hiện (Danh mục + trong bài).
+
+### Việc 5: Viết lại 6.2.1. Tính đổi mới - ĐÃ XONG
+
+Mục này trống hoàn toàn trước đó. Viết mới 4 đoạn, mỗi đoạn 1 luận điểm có căn cứ trích từ chính
+báo cáo: (1) pipeline thử kính ảo thời gian thực chạy ngay trong luồng mua sắm qua WebSocket, khác
+cách dán ảnh tĩnh phổ biến; (2) tối ưu FPS có đo đạc hệ thống theo từng kỹ thuật (Bảng 4.5, 4.6),
+không chỉ báo cáo 1 con số cuối; (3) mô hình cảm xúc được huấn luyện, so sánh 3 thuật toán (Bảng
+4.7) rồi gọi thật trong luồng đánh giá, không dừng ở notebook thử nghiệm; (4) kết hợp 2 mô đun AI
+trong 1 hệ thống nguyên khối dùng chung 1 tiến trình Django/Daphne. Không nêu tên đối thủ cụ thể
+nào (không có căn cứ để xác minh), chỉ so sánh với đặc điểm chung của giải pháp phổ biến.
+
+### Việc 6: Tài liệu tham khảo - ĐÃ XONG
+
+Viết lại toàn bộ mục Tài liệu tham khảo: giữ nguyên 10 mục gốc vừa khôi phục, thêm mục [11] bộ dữ
+liệu Kaggle "Vietnamese Sentiment Analyst" của linhlpv (lấy đúng thông tin tác giả/năm 2021 từ
+chính trang trích dẫn của đề cương, không tự bịa) và mục [12] Python Language Reference - tổng 12
+mục. Mỗi mục có link thật gắn qua `<w:hyperlink>` thật (thêm 12 relationship trong
+`document.xml.rels`, không phải text thường). Thêm số trích dẫn [n] tại 10 vị trí trong Chương 1-4
+nơi từng công nghệ/bộ dữ liệu được nhắc lần đầu (Django, Django Admin, MySQL/PyMySQL, Channels/
+ASGI, MediaPipe, OpenCV, One-Euro Filter, underthesea, scikit-learn, bộ dữ liệu, Python).
+
+### Việc 7: Rà soát 10 yêu cầu của thầy - xem bảng chi tiết trong tin nhắn trả lời người dùng
+
+Đánh dấu trạng thái từng mục (Đạt/Đạt một phần/Chưa đạt/Không đánh giá được) kèm bằng chứng - đưa
+đầy đủ trong tin nhắn trả lời, không lặp lại ở đây để tránh trùng lặp; tóm tắt nhanh: mục 7 (mục
+tiêu >50%) ĐÃ XONG trong phiên này; mục 3, 6 ĐẠT MỘT PHẦN (đã có nội dung liên quan nhưng chưa chắc
+đủ ý thầy muốn); mục 5 phát hiện KHÔNG CÓ mục "công trình liên quan" nào trong bản hiện tại (không
+phải vấn đề trích dẫn bịa, mà là THIẾU HẲN mục này); mục 4, 9, 10 KHÔNG ĐÁNH GIÁ ĐƯỢC vì thiếu dữ
+liệu đầu vào (comment reviewer gốc, danh sách hình cần kiểm tra nguồn) hoặc ngoài khả năng công cụ
+(Google Lens); mục 8 CHƯA RÀ toàn văn bản (chỉ đảm bảo phần mới viết hôm nay không dính lỗi này).
+
+### Kỹ thuật: quy trình sửa XML trực tiếp (không dùng COM Fields.Update lần này)
+
+Rút kinh nghiệm từ vụ mất dữ liệu ở phiên #50: lần này sửa `document.xml` trực tiếp bằng
+`zipfile.extractall` + Edit tool (chuỗi duy nhất, không regex) + đóng gói lại bằng `zipfile`, HOÀN
+TOÀN KHÔNG gọi `Fields.Update()`/`TablesOfContents.Update()` trên toàn văn bản. Gặp lỗi tự tạo ra:
+2 lần chèn text dùng XML character entity `&#xHHHH` quên dấu `;` kết thúc (7 chỗ), làm hỏng
+`document.xml` - phát hiện qua `validate.py` ("CharRef: invalid hexadecimal value"), sửa bằng regex
+chèn lại dấu `;` thiếu, validate lại PASSED. Dùng COM một lần cuối chỉ để mở file ở chế độ ẩn xác
+nhận Word đọc được không cần sửa lỗi (không gọi Save), rồi đóng ngay, gỡ `pywin32` sau khi xong.
+File `Copy.final.docx` đang mở sẵn trong cửa sổ Word của người dùng (không có thay đổi chưa lưu) -
+đã đóng qua COM trước khi ghi đè file, người dùng cần tự mở lại để xem bản mới.
+
+### Việc CHƯA xong / cần người dùng quyết định
+
+- Việc 1: chờ người dùng đồng ý mới đổi tên "(products)" → "(thuộc app products)" cho 15 bảng.
+- Mục 5 (công trình liên quan bịa): cần người dùng xác nhận có muốn THÊM MỚI một mục "Công trình
+  nghiên cứu liên quan / Research Gap" vào Chương 1 hay không - đây là nội dung MỚI, ngoài phạm vi
+  Việc 1-6 đã giao, và cần tên công trình THẬT do người dùng cung cấp (không tự bịa).
+- Mục 3 (thiếu công thức toán trong Chương 2): cần người dùng chỉ rõ công thức nào đang thiếu.
+- Mục 4 (60% comment reviewer): cần bản comment gốc của thầy để đối chiếu từng ý.
+- Mục 8 (dấu "--", chen tiếng Anh): chưa rà toàn văn bản 336 đoạn - có thể dùng skill
+  "word"/"humanizer" đã cài sẵn trong máy nếu người dùng muốn làm tiếp.
+- Mục 9, 10 (nguồn hình ảnh): cần người dùng chỉ rõ hình nào lấy từ mạng/do AI tạo để xử lý tiếp.
+
+---
+
+## 53. NHẬT KÝ PHIÊN LÀM VIỆC — Class Diagram (drawio) + sửa slide "Admin: đơn hàng và cảm xúc" trên Canva (2026-09-23)
+
+Deck Canva: `DAHV8zl0sJI` — "Bao ve chuyen de - Nguyen Thi Hong Minh 25410256" (24 trang).
+
+| # | Việc | Trạng thái |
+|---|---|---|
+| 1 | Đọc models.py của 8 app → vẽ Class Diagram, xuất `Astraea_ClassDiagram.drawio` | XONG |
+| 2 | Slide 10 (Class Diagram): sửa ghi chú thuyết trình, ghi tên file ảnh vào khung | XONG, còn chờ kéo ảnh vào |
+| 3 | Slide 22: đổi tiêu đề thành "Quản trị: đơn hàng và thống kê đánh giá" | XONG |
+| 4 | Slide 22: chụp màn hình admin (server local) | XONG, còn chờ kéo ảnh vào |
+| 5 | Slide 22: viết lại mô tả thành 2 cột có ví dụ (đơn #18, Mythic 50/12/38%) + ghi chú mới | XONG |
+
+### Việc 1 — Class Diagram
+- Script: `scripts/generate_class_diagram_drawio.py` (chạy lại được). Kết quả: `Astraea_ClassDiagram.drawio`,
+  ảnh xem trước `Astraea_ClassDiagram.png`.
+- Dữ liệu lấy từ Django `_meta` (kiểu trường, max_length, unique, null, default, on_delete, related_name,
+  unique_together) và các phương thức/@property trong models.py. 15 model + AbstractUser + 8 enum
+  (TextChoices). Composition (◆) cho các quan hệ cha-con CASCADE: Product-ProductImage,
+  Product-GlassesOverlay, Cart-CartItem, Order-OrderItem, Review-ReviewMedia, Wallet-Transaction.
+- Render thử bằng viewer.diagrams.net qua Playwright (msedge), đã sửa đường nối cho hết cắt nhau.
+- Chỉ gồm lớp model (dữ liệu). Các lớp xử lý ảnh trong `tryon/vision.py` (LightNormalizer,
+  FaceMeshDetector, GlassesOverlay (lớp vẽ, trùng tên với model), OneEuroFilter, AnchorSmoother) KHÔNG
+  có trong sơ đồ.
+
+### Việc 2-5 — Canva
+- Không tự tải ảnh lên Canva được: công cụ Canva chỉ nhận URL công khai, ảnh lại nằm trên máy.
+  Ảnh đã cắt sẵn trong `slide_images/`: `class_diagram.png`, `admin_don_hang_18.png` (tỉ lệ khớp khung
+  780×322), `admin_danh_gia_tat_ca.png` (khớp khung 780×190), `admin_danh_gia_loc_mythic.png` (dự phòng).
+- Chọn đơn #18 làm ví dụ vì đơn #19 có dữ liệu mâu thuẫn (status=CANCELLED nhưng delivery_status=DELIVERED).
+- Ghi chú slide 10 cũ nhắc "GlassesOverlay.render_on_frame_auto" — hàm đó thuộc lớp vẽ trong
+  tryon/vision.py, không thuộc model → đã viết lại ghi chú theo đúng sơ đồ.
+
+### Phát hiện (chưa sửa, chưa được yêu cầu)
+- Trang sửa đơn trong admin vẫn hiện link "Thêm một Sản phẩm trong đơn hàng" ở phần OrderItemInline
+  (inline chưa tắt has_add_permission) → mâu thuẫn với câu "mọi trường chỉ đọc".
+
+---
+
+## 54. NHẬT KÝ PHIÊN LÀM VIỆC — Mô tả chi tiết + ví dụ cho các slide chức năng (Canva, 2026-09-23)
+
+Nguồn nội dung: bản Word `Bao_cao_chuyen_de_TN_Nguyen_Thi_Hong_Minh_25410256 - Copy.final.docx`
+(Bảng 3.1 đặc tả use case, Bảng 4.3 hàm chính, Chương 5). Số liệu ví dụ lấy từ CSDL thật và đối chiếu code.
+
+| # | Việc | Trạng thái |
+|---|---|---|
+| 1 | Đọc Word (3.2, 4.3, chương 5) + đối chiếu code/CSDL | XONG |
+| 2 | Trang 12 Tài khoản: thêm ví dụ (trùng username Minh, quên mật khẩu 2 bước, SĐT/địa chỉ điền sẵn khi thanh toán) | XONG |
+| 3 | Trang 13 Chi tiết sản phẩm: Dublin 1.890.000đ còn 19 → ô số lượng 1-19; TRY ON có/không (Impossible không có AR); gợi ý cùng danh mục; Mythic 3,2 sao/16 | XONG |
+| 4 | Trang 14 đổi thành "Giỏ hàng và thanh toán" (slide Đặt hàng đã bị xoá khỏi deck): gộp giỏ session, cộng dồn, kẹp tồn kho Mythic 17, AJAX, cửa sổ thanh toán, đơn #18 = 4.049.000đ | XONG |
+| 5 | Trang 15 Đơn hàng của tôi: đơn #18, huỷ đơn #17 hoàn kho, huỷ lần 2 bị chặn, nút/nhãn đánh giá; đổi bố cục chữ trái ảnh phải | XONG |
+| 6 | Ghi chú thuyết trình trang 13-15 viết lại theo ví dụ mới | XONG |
+
+Ghi chú: deck hiện 21 trang. Slide Class Diagram, Trang chủ & tìm kiếm, Đặt hàng không còn trong deck
+(người dùng xoá trước phiên này) — chưa khôi phục, chờ người dùng quyết định.
+Khung ảnh trang 14 (800×500) và 15 (800×472) đã chỉnh đúng tỉ lệ ảnh gốc 1440×900 và 1440×850.
+
+## Sửa bug đánh giá (bug_promtp/bug_danhgia.png) — 2026-09-23
+
+Triệu chứng: đơn #21 (Dublin, đã giao) hiện sẵn "Đã đánh giá" dù chưa đánh giá đơn này.
+Nguyên nhân gốc: Review ràng buộc `unique_together = (user, product)` và trang Đơn hàng của tôi kiểm tra theo
+`product_id` → user đã đánh giá Dublin ở đơn #18 (review #63) nên mọi đơn Dublin sau đều bị coi là đã đánh giá.
+
+| # | Việc | Trạng thái |
+|---|---|---|
+| 1 | `Review.order_item` → OneToOneField, bỏ unique (user, product); migration `reviews/0003_review_per_order_item` | XONG |
+| 2 | `orders/views.my_orders`: kiểm tra theo `reviewed_item_ids`; nút "Đánh giá" truyền `?item=<order_item_id>` | XONG |
+| 3 | `products/views.detail`: chọn order_item theo `?item=` (hoặc đơn đã giao gần nhất chưa đánh giá); form ghi "đơn hàng #N" | XONG |
+| 4 | `reviews/views.review_create`: chặn đánh giá trùng theo order_item, vẫn chỉ cho đơn DELIVERED; cảm xúc AI gán khi lưu | XONG |
+| 5 | Kiểm tra bằng Django test client trên đơn #21 thật (tạo → POS 0.98, badge đổi, chặn lần 2; đã rollback) | XONG |
+
+## 55. Rà soát và sửa HÌNH THỨC TRÌNH BÀY báo cáo Word (2026-09-23)
+
+File: `Bao_cao_chuyen_de_TN_Nguyen_Thi_Hong_Minh_25410256 - Copy.final.docx`
+(bản sao lưu trước khi sửa: `...Copy.final.BACKUP_20260923_fmt.docx`). Đối chiếu với quy định hình thức trình bày.
+
+### Kết quả rà soát (trước khi sửa)
+| Mục quy định | Hiện trạng | Đạt? |
+|---|---|---|
+| Lề 3 / 3.5 / 3.5 / 2 cm, A4 | Cả 2 section đúng | ĐẠT |
+| Font Times New Roman | docDefaults TNR; code dùng Consolas | ĐẠT (trừ khối code) |
+| Cỡ 13pt | Normal 13; caption 12; bảng 11-11.5; code 10; số trang 10 | CHƯA |
+| Dãn dòng 1.5 | Normal 1.5; nhưng style ListParagraph + NormalWeb (1.1, Lời cảm ơn) = 1.0 | CHƯA |
+| Chương bold 14 / mục bold 13 | H1 bold 14 đúng; style còn màu xanh; H3 in nghiêng; " 5.1", " 5.2", "5.9 " dư khoảng trắng | CHƯA |
+| Không đánh số trang phần đầu; bắt đầu từ Tóm tắt, giữa dưới, số Ả-rập | Không có trang TÓM TẮT; số trang bắt đầu từ Chương 1 | CHƯA |
+| Bảng/hình đánh số chương.thứ tự, có caption + nguồn | Số đúng; caption bảng 3.3-3.17 nằm DƯỚI bảng (các bảng khác ở trên); canh lề lẫn lộn; KHÔNG có nguồn | CHƯA |
+| Danh mục hình/bảng | Gõ tay, không số trang, lệch chữ với caption (5.1, 5.3, 5.10, 4.1, 4.5-4.7) | CHƯA |
+| Bảng nằm trong lề | Bảng rộng 16,0 cm > vùng chữ 15,5 cm | CHƯA |
+| Chú thích cuối trang | Không có chú thích nào | ĐẠT (không áp dụng) |
+| Bảng ngang khổ giấy | Không có | Không áp dụng |
+| TLTK chuẩn IEEE, tách Việt/Anh, xếp alphabet | Đang kiểu APA, xếp theo thứ tự trích | CHƯA |
+| Sạch sẽ, không tẩy xoá | Không track change/comment/highlight; bìa có lỗi "andreview", "MSSV:25410256"; đoạn trống thừa ở 5.3 | CHƯA |
+
+### Việc sửa
+| # | Việc | Trạng thái |
+|---|---|---|
+| 1 | Style Heading 1-3: bỏ màu, bỏ nghiêng H3, H1 14 / H2-H3 13 đậm | XONG |
+| 2 | Xoá khoảng trắng thừa tiêu đề 5.1, 5.2, 5.9 | XONG |
+| 3 | NormalWeb, ListParagraph → dãn dòng 1.5, 13pt, canh đều | XONG |
+| 4 | Caption hình/bảng: 13pt, canh giữa, bảng ở trên / hình ở dưới (dời 15 caption bảng 3.3-3.17) | XONG |
+| 5 | Thêm dòng "Nguồn: ..." cho mọi hình và bảng | XONG |
+| 6 | Danh mục hình/bảng → sinh tự động (có số trang) từ caption | XONG |
+| 7 | Bảng: thu về 15,5 cm, chữ trong bảng 13pt | XONG |
+| 8 | Bìa: sửa "andreview", "MSSV: ", bỏ dấu cách canh lề; xoá đoạn trống thừa mục 5.3, canh giữa ảnh 5.4 | XONG |
+| 9 | Thêm trang TÓM TẮT (bản nháp tóm từ nội dung báo cáo), số trang bắt đầu = 1 tại đây | XONG |
+| 10 | Số trang: giữa dưới, TNR 13 | XONG |
+| 11 | TLTK: IEEE, mục "Tài liệu tiếng Anh", xếp alphabet, đánh lại số trích dẫn trong bài | XONG |
+| 12 | Cập nhật Mục lục/danh mục bằng Word, xuất PDF kiểm tra | XONG |
+
+### Kết quả sau khi sửa (kiểm bằng PDF xuất từ Microsoft Word: 69 trang)
+- Trang bìa → Danh mục từ viết tắt (9 trang) không đánh số; TÓM TẮT = trang 1, số trang giữa dưới, TNR 13.
+- Mục lục, Danh mục hình (13 hình), Danh mục bảng (26 bảng) đều là trường tự động, đã cập nhật số trang.
+  Khi sửa caption, nhấn chuột phải vào danh mục → Update Field → Update entire table.
+- Trích dẫn trong bài đã đổi số theo thứ tự mới của TLTK (cũ→mới: 1→3, 2→4, 3→2, 4→5, 5→7, 6→1, 7→11,
+  8→12, 9→9, 10→8, 11→6, 12→10; "[9][10]" → "[8], [9]").
+- Bản PDF kiểm tra: `...Copy.final.pdf`. Bản trước khi sửa: `...Copy.final.BACKUP_20260923_fmt.docx`.
+- Script: bản nháp trong scratchpad phiên (fix.py), không đưa vào repo.
+
+### Còn để người dùng quyết định
+- TÓM TẮT là bản nháp tóm từ mục 1.2 và 6.1 (không thêm số liệu mới) → cần đọc lại, sửa lời.
+- Không có tài liệu tiếng Việt nào nên TLTK chỉ có mục "Tài liệu tiếng Anh".
+- IEEE: TLTK gốc không có ngày truy cập nên chưa ghi "Accessed: ..."; bài Casiez (CHI 2012) chưa có số trang/nơi tổ chức.
+- Khối code vẫn để Consolas 10pt (thông lệ trình bày mã nguồn); chữ trong bảng dãn dòng 1.25 cho gọn.
+- Trang "Nhận xét của GVHD" có dòng ngày/ký tên 11-12pt (trang biểu mẫu, không đánh số).
+- Tiêu đề chương đang là "CHƯƠNG 1: TỔNG QUAN" (in hoa, dấu hai chấm), chưa đổi sang "Chương 1. ...".
+- Nguồn hình/bảng ghi theo thực tế: sơ đồ/bảng = "Tác giả tự xây dựng/tổng hợp", ảnh giao diện =
+  "Ảnh chụp màn hình hệ thống do tác giả xây dựng", bảng FPS/mô hình = "Kết quả thực nghiệm của tác giả".
+
+## 56. THÊM KÍNH TỪ CARFIA.COM + DÁNG KÍNH + MÃ SKU + NÚT TRY ON TRÊN TRANG CHỦ (2026-09-29)
+
+Yêu cầu: (1) sản phẩm chưa có ảnh liên quan → tìm đúng mẫu theo tên/ảnh rồi bổ sung; (2) thêm phân
+loại dáng kính ngoài Square/Oval, lấy từ https://www.carfia.com/collections/eyeglasses, CHỈ kính gọng
+thường, KHÔNG lấy kính mát; (3) thêm sản phẩm; (4) SKU cho từng sản phẩm; (5) chỉnh admin; (6) trang
+chủ có nút TRY ON ngay trên thẻ sản phẩm (không phải vào trang chi tiết).
+
+| # | Việc | Trạng thái |
+|---|---|---|
+| 1 | Khôi phục ảnh gallery cho 4 sản phẩm cũ (mất liên kết DB từ lần reset XAMPP, file vẫn còn) | XONG |
+| 2 | Lệnh `import_carfia_eyeglasses`: 33 mẫu kính gọng mới, dáng kính = Category | XONG |
+| 3 | Ảnh thử kính ảo (PNG tách nền) cho cả 33 mẫu mới | XONG |
+| 4 | SKU bắt buộc DUY NHẤT, tự sinh khi để trống (migration `products.0005`) | XONG |
+| 5 | Admin sản phẩm/danh mục | XONG |
+| 6 | Nút TRY ON trên thẻ sản phẩm (trang chủ, tìm kiếm, yêu thích) + modal dùng chung | XONG |
+
+### 1. Ảnh sản phẩm cũ
+- `products_productimage` rỗng (0 dòng) dù `media/products/gallery/` còn đủ file của Incantation,
+  Mythic, Impossible, Dublin → gắn lại. Chỉ lấy ảnh sản phẩm (nền sáng), bỏ ảnh người mẫu
+  (lọc theo tỉ lệ điểm ảnh sáng, soát lại bằng mắt): Incantation 2, Mythic 2, Impossible 2, Dublin 3.
+- SKU tra đúng trên intl.lespecs.com: Incantation `LSP2552151`, Mythic `LBL2624907`. Bản
+  "Impossible Tokyo Tort" đã ngừng bán trên lespecs (không còn trang sản phẩm) → SKU tự sinh
+  `AST-SQU-74840F`.
+- Lưu ý: theo lespecs, Incantation và Impossible là KÍNH MÁT (tròng màu khói, tag `Class:Sunglasses`).
+  Giữ nguyên vì là dữ liệu cũ, chưa xoá - chờ người dùng quyết định.
+
+### 2. Nhập kính từ carfia (`products/management/commands/import_carfia_eyeglasses.py`)
+- Đọc JSON công khai của Shopify (`/collections/eyeglasses/products.json`): 276 sản phẩm → loại kính
+  mát (handle chứa `sunglass`, tên đuôi `-RX`, product_type khác `Eyeglasses`, tag Polarized/Driving)
+  còn 189.
+- Dáng kính theo đúng bộ lọc dáng của carfia (collection `square-eyeglasses`, `oval-eyeglasses`,
+  `round-eyeglasses`, `rectangle-eyeglasses`, `cat-eye-glasses`), thiếu thì dựa vào tag/mô tả. Mỗi
+  dòng kính chỉ lấy 1 màu đại diện; dòng Dublin bỏ qua vì đã có.
+- Ảnh: chỉ lấy ảnh góc chụp sản phẩm (front/angle/side/detail/fold...), bỏ `model`/`lifestyle`/
+  `size-chart`; thêm kiểm tra nền trắng vì carfia đặt tên ảnh người mẫu là "detail"/"three-quarter"
+  (đã xoá 3 ảnh người mẫu lọt vào Mathew FC07, Leoon FC01).
+- Giá = USD × 55.600, làm tròn 10.000đ (cùng tỉ lệ với Dublin); mô tả tiếng Việt + thông số (màu,
+  dáng, cỡ, chất liệu, kiểu viền, kích thước mm lấy từ mô tả gốc, trọng lượng); SKU = mã biến thể
+  của carfia.
+- Kết quả: 33 sản phẩm mới. Hiện có 37 sản phẩm: Square 12, Round 12, Rectangle 7, Oval 6. Mẫu
+  Cat-Eye duy nhất (Camila) và Architect/Milo/Jeremy/Rayner/Gabriella/Clifford không có ảnh chính
+  diện đặt tên rõ ràng nên bỏ qua.
+- Lệnh chạy lại được (bỏ qua SKU/dòng kính đã có), có `--dry-run`, `--limit`. Vì DB không có
+  backup, nếu mất dữ liệu thì chạy lại lệnh này (cần Internet).
+
+### 3. Ảnh thử kính ảo cho sản phẩm mới
+- Tách nền trắng ảnh chính diện bằng ngưỡng mềm độ sáng (giống Dublin_f.png, mục 41), bỏ chấm
+  nhiễu, cắt sát viền; chỉ tạo `GlassesOverlay` khi `_find_lens_anchors` tìm được 2 tâm tròng hợp lệ.
+  Cả 33/33 đạt. Tổng số mẫu thử kính: 36 (Impossible vẫn chưa có).
+- Soát bằng mắt 33 ảnh trên nền màu da; gửi ảnh mặt thật (`media/avatars/4.jpg`) qua WebSocket
+  `ws://127.0.0.1:8000/ws/tryon/` với 6 mẫu (Albany, Benedict, Bonterey, Aven, Poptart, Senda) →
+  cả 6 nhận diện được mặt, kính nằm đúng mắt.
+
+### 4. SKU
+- `Product.sku`: `unique=True`; `save()` chuẩn hoá chữ hoa, để trống thì tự sinh
+  `AST-<3 chữ dáng kính>-<6 ký tự>` (`Product.generate_sku`).
+- Migration `0005_product_sku_unique`: RunPython sinh SKU cho sản phẩm trống/trùng TRƯỚC khi đặt
+  UNIQUE. Kiểm tra qua admin thật (test client, rollback): để trống SKU → `AST-ROU-BE8AF8`; nhập
+  trùng `CA5352-FC13` → form báo lỗi, không lưu.
+
+### 5. Admin (`products/admin.py`)
+- Danh sách sản phẩm: ảnh thu nhỏ, SKU, dáng kính, giới tính, giá, tồn kho (sửa ngay trên danh
+  sách), cột "Try on"; lọc theo dáng kính/giới tính/đang bán/có thử kính ảo; tìm theo tên/SKU.
+- Form sản phẩm chia nhóm; inline ảnh gallery có xem trước; inline ảnh thử kính (PNG + 2 số canh
+  chỉnh). Danh mục có cột số sản phẩm.
+
+### 6. Nút TRY ON trên thẻ sản phẩm
+- `templates/products/_tryon_modal.html` (mới): modal thử kính dùng chung; `detail.html` dùng lại
+  partial này thay cho markup cũ.
+- `_product_card.html`: nút "TRY ON" nổi giữa đáy ảnh nếu sản phẩm có `glasses_overlay`.
+- `static/js/tryon.js`: hỗ trợ nhiều nút `[data-tryon-open]` trên 1 trang, mỗi nút mở modal với
+  đúng mẫu kính (tiêu đề + mục đang chọn); đổi mẫu trong modal cũng cập nhật tiêu đề. `?v=5`.
+- `products/views.tryon_gallery()` dùng chung cho home/search/detail/favorites; truy vấn thêm
+  `select_related("glasses_overlay")` để không phát sinh N+1. CSS `.card-tryon-btn`; `style.css?v=5`.
+- Playwright (Edge, camera giả): trang chủ 37 thẻ / 36 nút TRY ON; bấm TRY ON ở Albany → modal
+  hiện "Thử kính ảo - Albany FC13", đúng mục đang chọn, có khung hình trả về; đổi sang Retroz →
+  tiêu đề đổi; đóng rồi mở từ Dublin → đúng Dublin. Không có lỗi console.
+
+### Kiểm tra chung
+`manage.py check` sạch, `makemigrations --check` không còn thay đổi. Khởi động lại server
+(`runserver --noreload`). Trang chủ, chi tiết (albany-fc13, dublin, impossible-tokyo-tort), tìm kiếm,
+admin (danh sách, bộ lọc, danh mục, sửa, thêm) đều trả về 200.
+
+### 56b. Chỉ giữ 3 dáng kính: Square, Oval, Round (cùng ngày)
+- Người dùng chỉ cần 3 phân loại kính, các dáng còn lại loại bỏ; kính mát cũ (Incantation,
+  Impossible) GIỮ NGUYÊN.
+- Xoá danh mục Rectangle cùng 7 sản phẩm (Leoon FC01, Peoria FC01, Shellton FC19, Camet FC05,
+  Senda FC07, Mathew FC07, Hemet FL01), 15 ảnh gallery, 7 ảnh thử kính, xoá luôn file ảnh. Đã kiểm
+  tra trước khi xoá: 0 đơn hàng, 0 giỏ hàng, 0 đánh giá, 0 yêu thích tham chiếu tới các sản phẩm này.
+- `import_carfia_eyeglasses`: thêm `ALLOWED_SHAPES = {"Square", "Oval", "Round"}`, dòng kính dáng
+  khác bị bỏ qua; `--dry-run` xác nhận chạy lại không nhập thêm gì.
+- Còn 30 sản phẩm: Square 12, Round 12, Oval 6; 29 sản phẩm có nút TRY ON. Trang chủ chỉ còn
+  3 bộ lọc dáng kính; `/san-pham/leoon-fc01/` trả về 404.
+
+## 57. ĐỔI ẢNH BANNER TRANG CHỦ (2026-09-29)
+- Ảnh mới: VITURE Beast XR Glasses (thegadgetflow.com, 1600×900) → ghi đè `static/img/hero-bg.jpg`;
+  ảnh cũ giữ lại ở `static/img/hero-bg-cu.jpg`.
+- `static/css/style.css` (`.hero`): lớp phủ đổi thành gradient ngang (đậm bên trái sau chữ, nhạt dần
+  sang phải để thấy người mẫu), `background-position: center 35%` để giữ phần kính trong khung;
+  thêm chú thích chỗ thay ảnh. `base.html`: `style.css?v=6`.
+- Kiểm tra bằng Playwright (Edge) ở 1366×768 và 390×844: ảnh hiển thị, chữ trắng vẫn đọc rõ.
+
+## 58. ĐƯA 3 KÍNH CŨ LÊN ĐẦU DANH SÁCH THỬ KÍNH + CHỐNG CACHE ẢNH BANNER (2026-09-29)
+- `products/views.tryon_gallery()`: sắp theo `PINNED_TRYON_SLUGS = ["dublin",
+  "mythic-gold-blue-light-lens", "incantation-black"]` (Case/When), các mẫu còn lại theo tên. Áp dụng
+  cho mọi modal thử kính (trang chủ, tìm kiếm, yêu thích, chi tiết). Playwright: danh sách bắt đầu
+  bằng Dublin → Mythic → Incantation → Adrey FC03 → Albany FC13...
+- Banner: người dùng vẫn thấy ảnh cũ dù server đã trả ảnh VITURE (md5 file server = file tải về) →
+  do trình duyệt lưu cache theo URL `hero-bg.jpg`. Đổi tên file thành `static/img/hero-viture.jpg`,
+  sửa `url(...)` trong `.hero`, `style.css?v=7`. Playwright xác nhận nền `.hero` = `hero-viture.jpg`
+  (200).
+- Lúc khởi động lại phát hiện 1 server `manage.py runserver` khác do người dùng tự mở (PID 14140,
+  11:21, có autoreload) - không tắt; cổng 8000 đang do server `--noreload` của Claude giữ
+  (PID 21500/25168).
+
+## 59. BỔ SUNG SƠ ĐỒ ACTIVITY + SEQUENCE CHO THỬ KÍNH ẢO VÀ BÌNH LUẬN (2026-09-30)
+- `bug_promtp/PhanTich_Class_Sequence_Activity.md`: thêm **AD-00** (hành trình tổng: xem → thử kính → mua → bình luận);
+  viết lại **AD-02** (đánh giá theo từng OrderItem, `?item=`, lỗi quay về Đơn hàng của tôi) và **AD-03** (TRY ON ở
+  trang chủ/tìm kiếm/yêu thích/chi tiết, lỗi mẫu kính không tồn tại, mất kết nối); SD-06 thêm pha hiển thị form.
+- `bug_promtp/activy.drawio.xml`: thêm 3 trang AD-00, AD-02, AD-03 (swimlane cùng style AD-01).
+- `bug_promtp/sodotuantu_daydu.drawio.xml`: vẽ lại seq_6 (Thử kính) và seq_11 (Đánh giá) có khung alt/opt/loop,
+  giữ nguyên tên hình 3.8 / 3.13.
+- Script sinh sơ đồ: `bug_promtp/tools/gen_ad.js`, `gen_seq.js`, `render.js` (render qua viewer.diagrams.net +
+  Edge headless để kiểm tra). Đã kiểm tra: XML hợp lệ, không trùng id, cạnh trỏ đúng node, ảnh render không chồng chéo.
+- Lưu ý code: đơn mới tạo có `status = DELIVERED`; điều kiện đánh giá chỉ xét `status`, không xét `delivery_status`.

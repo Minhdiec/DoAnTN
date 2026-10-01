@@ -11,11 +11,15 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 function initTryOn() {
-    var openBtn = document.querySelector("[data-tryon-open]");
+    // Co the co NHIEU nut TRY ON tren 1 trang (trang chu/tim kiem: moi the
+    // san pham co anh AR co 1 nut) - tat ca dung chung 1 modal, moi nut
+    // mang san data-glasses-id cua mau kinh tuong ung.
+    var openBtns = document.querySelectorAll("[data-tryon-open]");
     var modal = document.getElementById("tryon-modal");
-    if (!openBtn || !modal) {
-        return; // san pham nay chua co anh AR - khong co gi de khoi tao
+    if (!openBtns.length || !modal) {
+        return; // trang nay khong co san pham nao co anh AR
     }
+    var titleEl = document.getElementById("tryon-modal-title");
 
     var closeButtons = modal.querySelectorAll("[data-tryon-close]");
     var placeholder = document.getElementById("tryon-placeholder");
@@ -25,8 +29,8 @@ function initTryOn() {
     var captureCanvas = document.getElementById("tryon-canvas-capture");
     var outputImg = document.getElementById("tryon-output");
     var statusEl = document.getElementById("tryon-status");
-    var galleryItems = modal.querySelectorAll("[data-glasses-id]");
-    var defaultGlassesId = openBtn.getAttribute("data-glasses-id");
+    var galleryItems = modal.querySelectorAll(".tryon-gallery-item[data-glasses-id]");
+    var defaultGlassesId = openBtns[0].getAttribute("data-glasses-id");
 
     // Gui toi da ~25 khung hinh/giay - QUAN TRONG HON la: KHONG BAO GIO gui
     // khung moi khi khung truoc chua co phan hoi (co "waitingForResponse"
@@ -56,10 +60,29 @@ function initTryOn() {
     // nguoi dung) - du de trinh duyet cho phep goi getUserMedia() truc tiep
     // va tu hien hop thoai xin quyen camera, KHONG can them 1 nut "Bat
     // camera" trung gian nua (yeu cau muc 28, Loi 4).
-    openBtn.addEventListener("click", function () {
-        modal.hidden = false;
-        startCamera();
+    openBtns.forEach(function (btn) {
+        btn.addEventListener("click", function (event) {
+            event.preventDefault();
+            defaultGlassesId = btn.getAttribute("data-glasses-id");
+            var productName = btn.getAttribute("data-product-name");
+            if (titleEl && productName) {
+                titleEl.textContent = "Thử kính ảo - " + productName;
+            }
+            markActive(defaultGlassesId);
+            modal.hidden = false;
+            startCamera();
+        });
     });
+
+    function markActive(glassesId) {
+        galleryItems.forEach(function (i) {
+            var active = i.getAttribute("data-glasses-id") === String(glassesId);
+            i.classList.toggle("is-active", active);
+            if (active && i.scrollIntoView) {
+                i.scrollIntoView({ block: "nearest" });
+            }
+        });
+    }
 
     closeButtons.forEach(function (el) {
         el.addEventListener("click", stopTryOn);
@@ -69,10 +92,13 @@ function initTryOn() {
 
     galleryItems.forEach(function (item) {
         item.addEventListener("click", function () {
-            galleryItems.forEach(function (i) {
-                i.classList.toggle("is-active", i === item);
-            });
-            sendSelectGlasses(item.getAttribute("data-glasses-id"));
+            defaultGlassesId = item.getAttribute("data-glasses-id");
+            markActive(defaultGlassesId);
+            var name = item.getAttribute("data-product-name");
+            if (titleEl && name) {
+                titleEl.textContent = "Thử kính ảo - " + name;
+            }
+            sendSelectGlasses(defaultGlassesId);
         });
     });
 

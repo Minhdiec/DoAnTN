@@ -37,7 +37,9 @@ class Review(models.Model):
         verbose_name="Người đánh giá",
     )
 
-    order_item = models.ForeignKey(
+    # Mỗi dòng sản phẩm trong đơn (OrderItem) chỉ đánh giá được đúng 1 lần.
+    # Mua lại cùng sản phẩm ở đơn khác -> được đánh giá thêm cho đơn đó.
+    order_item = models.OneToOneField(
         OrderItem,
         on_delete=models.CASCADE,
         related_name="review",
@@ -74,7 +76,6 @@ class Review(models.Model):
     class Meta:
         verbose_name = "Đánh giá sản phẩm"
         verbose_name_plural = "Đánh giá sản phẩm"
-        unique_together = ("user", "product")
         ordering = ["-created_at"]
 
     def __str__(self):

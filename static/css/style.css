@@ -432,11 +432,13 @@ button {
 /* ---------- Hero ---------- */
 
 .hero {
-    /* Ảnh nền thật (static/img/hero-bg.jpg) + lớp phủ gradient navy đậm để
-       chữ trắng luôn đọc rõ, dù ảnh gốc sáng màu (biển/trời). */
-    background-image: linear-gradient(120deg, rgba(6, 15, 34, 0.92), rgba(6, 15, 34, 0.55) 55%, rgba(6, 15, 34, 0.8)), url(../img/hero-bg.jpg);
+    /* ẢNH BANNER TRANG CHỦ: static/img/hero-viture.jpg. Đổi ảnh = bỏ file mới
+       vào static/img/ rồi sửa tên file trong url(...) bên dưới (dùng tên MỚI
+       để trình duyệt không hiện lại ảnh cũ đã lưu cache). Lớp phủ gradient: đậm bên trái để chữ trắng đọc rõ, nhạt
+       dần sang phải để thấy người mẫu. Ảnh cũ lưu ở static/img/hero-bg-cu.jpg. */
+    background-image: linear-gradient(90deg, rgba(6, 15, 34, 0.85), rgba(6, 15, 34, 0.45) 50%, rgba(6, 15, 34, 0.05)), url(../img/hero-viture.jpg);
     background-size: cover;
-    background-position: center;
+    background-position: center 35%;
     color: #fff;
     overflow: hidden;
     position: relative;
@@ -731,6 +733,41 @@ button {
     top: 10px;
     right: 10px;
     z-index: 2;
+}
+
+/* Nút "TRY ON" trên thẻ sản phẩm (trang chủ/tìm kiếm/yêu thích) - mở thẳng
+   modal thử kính ảo, không cần vào trang chi tiết. */
+.card-tryon-btn {
+    position: absolute;
+    left: 50%;
+    bottom: 12px;
+    transform: translateX(-50%);
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 16px;
+    border: none;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.78);
+    color: #fff;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: var(--shadow-md);
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.card-tryon-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.card-tryon-btn:hover {
+    background: var(--color-primary-dark);
+    transform: translateX(-50%) translateY(-1px);
 }
 
 .product-thumb {
@@ -1691,7 +1728,7 @@ button {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    max-height: 260px;
+    max-height: 420px;
     overflow-y: auto;
     padding-right: 4px;
 }

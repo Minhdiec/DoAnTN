@@ -35,13 +35,13 @@ def my_orders(request):
         .prefetch_related("items__product")
         .order_by("-created_at")
     )
-    # Sản phẩm nào user này đã đánh giá rồi - dùng để quyết định có hiện nút
-    # "Đánh giá" cho từng dòng sản phẩm trong đơn hay không (mỗi sản phẩm đã
-    # mua chỉ đánh giá được 1 lần, xem reviews/models.py).
-    reviewed_product_ids = set(
-        Review.objects.filter(user=request.user).values_list("product_id", flat=True)
+    # Dòng sản phẩm (order_item) nào đã được đánh giá - dùng để quyết định có
+    # hiện nút "Đánh giá" cho từng dòng trong đơn hay không (mỗi dòng sản phẩm
+    # của mỗi đơn đánh giá được 1 lần, xem reviews/models.py).
+    reviewed_item_ids = set(
+        Review.objects.filter(user=request.user).values_list("order_item_id", flat=True)
     )
-    context = {"orders": orders, "reviewed_product_ids": reviewed_product_ids}
+    context = {"orders": orders, "reviewed_item_ids": reviewed_item_ids}
     return render(request, "orders/my_orders.html", context)
 
 

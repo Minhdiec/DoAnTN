@@ -14,6 +14,7 @@ DecimalField lưu số thập phân chính xác tuyệt đối, bắt buộc ph�
 mọi giá trị liên quan đến tiền tệ.
 """
 
+import uuid
 from decimal import Decimal
 
 from django.conf import settings
@@ -138,8 +139,11 @@ class Product(models.Model):
         verbose_name="Đang bày bán",
     )
 
+    # Mã SKU là DUY NHẤT cho mỗi sản phẩm (dùng để quản lý kho/tra cứu).
+    # Để trống khi thêm sản phẩm thì hệ thống tự sinh (xem generate_sku).
     sku = models.CharField(
         max_length=64,
+        unique=True,
         blank=True,
         verbose_name="Mã sản phẩm (SKU)",
     )
@@ -169,7 +173,19 @@ class Product(models.Model):
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.name)
+        self.sku = (self.sku or "").strip().upper()
+        if not self.sku:
+            self.sku = self.generate_sku(self.category.name if self.category_id else "")
         super().save(*args, **kwargs)
+
+    @classmethod
+    def generate_sku(cls, category_name=""):
+        # Dạng AST-<3 chữ đầu dáng kính>-<6 ký tự ngẫu nhiên>, VD AST-SQU-4F9A1C.
+        prefix = (slugify(category_name).replace("-", "")[:3] or "gen").upper()
+        while True:
+            sku = f"AST-{prefix}-{uuid.uuid4().hex[:6].upper()}"
+            if not cls.objects.filter(sku=sku).exists():
+                return sku
 
     @property
     def is_in_stock(self):

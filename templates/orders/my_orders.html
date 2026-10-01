@@ -51,10 +51,10 @@
                                     <div class="cart-item-total">{{ item.line_total|floatformat:0|intcomma }}₫</div>
                                     <div class="order-item-action">
                                         {% if order.status == "DELIVERED" %}
-                                            {% if item.product_id in reviewed_product_ids %}
+                                            {% if item.id in reviewed_item_ids %}
                                                 <span class="review-badge">Đã đánh giá</span>
                                             {% else %}
-                                                <a href="{% url 'products:detail' item.product.slug %}#danh-gia" class="btn btn-ghost btn-small">Đánh giá</a>
+                                                <a href="{% url 'products:detail' item.product.slug %}?item={{ item.id }}#danh-gia" class="btn btn-ghost btn-small">Đánh giá</a>
                                             {% endif %}
                                         {% endif %}
                                     </div>

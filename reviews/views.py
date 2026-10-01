@@ -9,7 +9,8 @@ redirect về trang sản phẩm, không có gì để hiển thị riêng.
 
 Điều kiện đánh giá (kiểm tra phía server, không chỉ ẩn nút trên giao diện):
 đã đăng nhập, order_item thuộc về chính người dùng, đơn hàng đã giao thành
-công, và sản phẩm này chưa được người dùng đánh giá lần nào.
+công, và dòng sản phẩm (order_item) này trong đơn chưa được đánh giá.
+Mua lại cùng sản phẩm ở đơn khác thì được đánh giá riêng cho đơn đó.
 """
 
 from django.contrib import messages
@@ -46,9 +47,9 @@ def review_create(request, order_item_id):
         messages.error(request, "Chỉ đánh giá được sản phẩm trong đơn đã giao thành công.")
         return redirect("orders:my_orders")
 
-    if Review.objects.filter(user=request.user, product=product).exists():
-        messages.error(request, f"Bạn đã đánh giá \"{product.name}\" rồi.")
-        return redirect(_product_detail_url(product))
+    if Review.objects.filter(order_item=order_item).exists():
+        messages.error(request, f"Bạn đã đánh giá \"{product.name}\" trong đơn #{order_item.order_id} rồi.")
+        return redirect("orders:my_orders")
 
     form = ReviewForm(request.POST)
     if not form.is_valid():

@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from products.models import Product
+from products.views import tryon_gallery
 
 from .models import Favorite
 
@@ -16,13 +17,14 @@ from .models import Favorite
 @login_required
 def list_view(request):
     favorite, _ = Favorite.objects.get_or_create(user=request.user)
-    products = favorite.products.filter(is_active=True).select_related("category")
+    products = favorite.products.filter(is_active=True).select_related("category", "glasses_overlay")
     context = {
         "products": products,
         # Mọi sản phẩm ở đây đều đã yêu thích - dùng lại đúng biến này để
         # products/_favorite_button.html (include chung) tô đậm được trái
         # tim, không cần viết logic riêng cho trang này.
         "favorite_product_ids": set(products.values_list("id", flat=True)),
+        "tryon_gallery": tryon_gallery(),
     }
     return render(request, "favorites/list.html", context)
 

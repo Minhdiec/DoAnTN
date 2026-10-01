@@ -1,0 +1,266 @@
+<mxfile host="app.diagrams.net" modified="2026-09-24T12:00:00.000Z" agent="Mozilla/5.0" version="21.0.0" type="device">
+  <diagram id="astraea-class-diagram-plain" name="Astraea Eyewear Class Diagram Plain">
+    <mxGraphModel dx="1600" dy="1100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1720" pageHeight="1220" background="#FFFFFF" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ===================== LỚP THỰC THỂ (đối chiếu */models.py) ===================== -->
+
+        <!-- USER (kế thừa AbstractUser) -->
+        <mxCell id="user" value="&lt;p style=&quot;margin:0px;padding:4px;text-align:center;&quot;&gt;&lt;b&gt;User&lt;/b&gt;&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;+ id: int&lt;br/&gt;+ username: String&lt;br/&gt;+ password: String&lt;br/&gt;+ email: String&lt;br/&gt;+ first_name: String&lt;br/&gt;+ last_name: String&lt;br/&gt;+ phone_number: String&lt;br/&gt;+ address: String&lt;br/&gt;+ avatar: Image&lt;br/&gt;+ is_active: bool&lt;br/&gt;+ is_staff: bool&lt;br/&gt;+ is_superuser: bool&lt;br/&gt;+ last_login: DateTime&lt;br/&gt;+ date_joined: DateTime&lt;br/&gt;+ created_at: DateTime&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;+ set_password(raw): void&lt;br/&gt;+ check_password(raw): bool&lt;br/&gt;+ __str__(): String&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;fontFamily=Helvetica;html=1;strokeWidth=1.5;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="40" y="240" width="240" height="320" as="geometry" />
+        </mxCell>
+
+        <!-- WALLET -->
+        <mxCell id="wallet" value="&lt;p style=&quot;margin:0px;padding:4px;text-align:center;&quot;&gt;&lt;b&gt;Wallet&lt;/b&gt;&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;+ id: int&lt;br/&gt;+ balance: Decimal&lt;br/&gt;+ created_at: DateTime&lt;br/&gt;+ updated_at: DateTime&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;+ deposit(amount, desc): Decimal&lt;br/&gt;+ withdraw(amount, desc): Decimal&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;fontFamily=Helvetica;html=1;strokeWidth=1.5;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="40" y="620" width="240" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- TRANSACTION -->
+        <mxCell id="transaction" value="&lt;p style=&quot;margin:0px;padding:4px;text-align:center;&quot;&gt;&lt;b&gt;Transaction&lt;/b&gt;&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;+ id: int&lt;br/&gt;+ transaction_type: TransactionType&lt;br/&gt;+ amount: Decimal&lt;br/&gt;+ balance_after: Decimal&lt;br/&gt;+ description: String&lt;br/&gt;+ created_at: DateTime&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;+ __str__(): String&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;fontFamily=Helvetica;html=1;strokeWidth=1.5;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="40" y="820" width="240" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- FAVORITE -->
+        <mxCell id="favorite" value="&lt;p style=&quot;margin:0px;padding:4px;text-align:center;&quot;&gt;&lt;b&gt;Favorite&lt;/b&gt;&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;+ id: int&lt;br/&gt;+ created_at: DateTime&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;+ add_product(product): void&lt;br/&gt;+ remove_product(product): void&lt;br/&gt;+ has_product(product): bool&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;fontFamily=Helvetica;html=1;strokeWidth=1.5;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="360" y="60" width="240" height="130" as="geometry" />
+        </mxCell>
+
+        <!-- CART -->
+        <mxCell id="cart" value="&lt;p style=&quot;margin:0px;padding:4px;text-align:center;&quot;&gt;&lt;b&gt;Cart&lt;/b&gt;&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;+ id: int&lt;br/&gt;+ session_key: String&lt;br/&gt;+ created_at: DateTime&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;+ add_product(product, qty): CartItem&lt;br/&gt;+ merge_from(other_cart): void&lt;br/&gt;+ total_items(): int&lt;br/&gt;+ total_price(): Decimal&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;fontFamily=Helvetica;html=1;strokeWidth=1.5;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="360" y="600" width="240" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- CARTITEM -->
+        <mxCell id="cartitem" value="&lt;p style=&quot;margin:0px;padding:4px;text-align:center;&quot;&gt;&lt;b&gt;CartItem&lt;/b&gt;&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;+ id: int&lt;br/&gt;+ quantity: int&lt;br/&gt;+ added_at: DateTime&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;+ line_total(): Decimal&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;fontFamily=Helvetica;html=1;strokeWidth=1.5;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="360" y="820" width="240" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- CATEGORY -->
+        <mxCell id="category" value="&lt;p style=&quot;margin:0px;padding:4px;text-align:center;&quot;&gt;&lt;b&gt;Category&lt;/b&gt;&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;+ id: int&lt;br/&gt;+ name: String&lt;br/&gt;+ slug: String&lt;br/&gt;+ created_at: DateTime&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;+ save(): void&lt;br/&gt;+ __str__(): String&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;fontFamily=Helvetica;html=1;strokeWidth=1.5;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="690" y="60" width="250" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- PRODUCT -->
+        <mxCell id="product" value="&lt;p style=&quot;margin:0px;padding:4px;text-align:center;&quot;&gt;&lt;b&gt;Product&lt;/b&gt;&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;+ id: int&lt;br/&gt;+ name: String&lt;br/&gt;+ slug: String&lt;br/&gt;+ description: String&lt;br/&gt;+ price: Decimal&lt;br/&gt;+ stock_quantity: int&lt;br/&gt;+ gender: Gender&lt;br/&gt;+ image: Image&lt;br/&gt;+ is_active: bool&lt;br/&gt;+ sku: String&lt;br/&gt;+ specs: JSON&lt;br/&gt;+ care_instructions: String&lt;br/&gt;+ created_at: DateTime&lt;br/&gt;+ updated_at: DateTime&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;+ save(): void&lt;br/&gt;+ is_in_stock(): bool&lt;br/&gt;+ description_intro(): String&lt;br/&gt;+ description_bullets(): List&amp;lt;String&amp;gt;&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;fontFamily=Helvetica;html=1;strokeWidth=1.5;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="690" y="240" width="250" height="320" as="geometry" />
+        </mxCell>
+
+        <!-- PRODUCTIMAGE -->
+        <mxCell id="productimage" value="&lt;p style=&quot;margin:0px;padding:4px;text-align:center;&quot;&gt;&lt;b&gt;ProductImage&lt;/b&gt;&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;+ id: int&lt;br/&gt;+ image: Image&lt;br/&gt;+ position: int&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;+ __str__(): String&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;fontFamily=Helvetica;html=1;strokeWidth=1.5;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="690" y="620" width="250" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- GLASSESOVERLAY (Model trong tryon/models.py) -->
+        <mxCell id="glassesoverlay" value="&lt;p style=&quot;margin:0px;padding:4px;text-align:center;&quot;&gt;&lt;b&gt;GlassesOverlay&lt;/b&gt;&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;+ id: int&lt;br/&gt;+ image: Image&lt;br/&gt;+ width_ratio: float&lt;br/&gt;+ vertical_offset: float&lt;br/&gt;+ created_at: DateTime&lt;br/&gt;+ updated_at: DateTime&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;+ __str__(): String&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;fontFamily=Helvetica;html=1;strokeWidth=1.5;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="690" y="800" width="250" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- ORDER -->
+        <mxCell id="order" value="&lt;p style=&quot;margin:0px;padding:4px;text-align:center;&quot;&gt;&lt;b&gt;Order&lt;/b&gt;&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;+ id: int&lt;br/&gt;+ status: OrderStatus&lt;br/&gt;+ delivery_status: DeliveryStatus&lt;br/&gt;+ total_amount: Decimal&lt;br/&gt;+ payment_method: PaymentMethod&lt;br/&gt;+ shipping_carrier: ShippingCarrier&lt;br/&gt;+ recipient_name: String&lt;br/&gt;+ shipping_address: String&lt;br/&gt;+ recipient_phone: String&lt;br/&gt;+ created_at: DateTime&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;+ get_payment_method_display(): String&lt;br/&gt;+ __str__(): String&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;fontFamily=Helvetica;html=1;strokeWidth=1.5;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="240" width="260" height="240" as="geometry" />
+        </mxCell>
+
+        <!-- ORDERITEM -->
+        <mxCell id="orderitem" value="&lt;p style=&quot;margin:0px;padding:4px;text-align:center;&quot;&gt;&lt;b&gt;OrderItem&lt;/b&gt;&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;+ id: int&lt;br/&gt;+ quantity: int&lt;br/&gt;+ unit_price: Decimal&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;+ line_total(): Decimal&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;fontFamily=Helvetica;html=1;strokeWidth=1.5;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="620" width="260" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- REVIEW -->
+        <mxCell id="review" value="&lt;p style=&quot;margin:0px;padding:4px;text-align:center;&quot;&gt;&lt;b&gt;Review&lt;/b&gt;&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;+ id: int&lt;br/&gt;+ rating: int&lt;br/&gt;+ content: String&lt;br/&gt;+ is_anonymous: bool&lt;br/&gt;+ sentiment: Sentiment&lt;br/&gt;+ sentiment_confidence: float&lt;br/&gt;+ created_at: DateTime&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;+ display_name(): String&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;fontFamily=Helvetica;html=1;strokeWidth=1.5;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="240" width="240" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- REVIEWMEDIA -->
+        <mxCell id="reviewmedia" value="&lt;p style=&quot;margin:0px;padding:4px;text-align:center;&quot;&gt;&lt;b&gt;ReviewMedia&lt;/b&gt;&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;+ id: int&lt;br/&gt;+ file: File&lt;br/&gt;+ media_type: MediaType&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;+ __str__(): String&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;fontFamily=Helvetica;html=1;strokeWidth=1.5;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="620" width="240" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== KIỂU LIỆT KÊ (TextChoices trong models.py) ===================== -->
+
+        <mxCell id="enum_title" value="&lt;b&gt;Các kiểu liệt kê (enumeration) dùng làm kiểu dữ liệu cho thuộc tính&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;fontSize=12;fontFamily=Helvetica;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1010" width="600" height="24" as="geometry" />
+        </mxCell>
+
+        <mxCell id="enum_gender" value="&lt;p style=&quot;margin:0px;padding:3px;text-align:center;&quot;&gt;«enumeration»&lt;br/&gt;&lt;b&gt;Gender&lt;/b&gt;&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;nu (Nữ)&lt;br/&gt;nam (Nam)&lt;br/&gt;unisex (Unisex)&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=10;fontFamily=Helvetica;html=1;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1045" width="195" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="enum_orderstatus" value="&lt;p style=&quot;margin:0px;padding:3px;text-align:center;&quot;&gt;«enumeration»&lt;br/&gt;&lt;b&gt;OrderStatus&lt;/b&gt;&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;DELIVERED (Giao thành công)&lt;br/&gt;CANCELLED (Đã hủy)&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=10;fontFamily=Helvetica;html=1;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="247" y="1045" width="195" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="enum_deliverystatus" value="&lt;p style=&quot;margin:0px;padding:3px;text-align:center;&quot;&gt;«enumeration»&lt;br/&gt;&lt;b&gt;DeliveryStatus&lt;/b&gt;&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;PENDING (Chờ giao hàng)&lt;br/&gt;IN_TRANSIT (Đang vận chuyển)&lt;br/&gt;DELIVERED (Giao thành công)&lt;br/&gt;FAILED (Giao thất bại)&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=10;fontFamily=Helvetica;html=1;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="454" y="1045" width="195" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="enum_paymentmethod" value="&lt;p style=&quot;margin:0px;padding:3px;text-align:center;&quot;&gt;«enumeration»&lt;br/&gt;&lt;b&gt;PaymentMethod&lt;/b&gt;&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;COD (Khi nhận hàng)&lt;br/&gt;MOMO (Ví MoMo)&lt;br/&gt;CARD (Thẻ ngân hàng)&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=10;fontFamily=Helvetica;html=1;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="661" y="1045" width="195" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="enum_shippingcarrier" value="&lt;p style=&quot;margin:0px;padding:3px;text-align:center;&quot;&gt;«enumeration»&lt;br/&gt;&lt;b&gt;ShippingCarrier&lt;/b&gt;&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;GHN&lt;br/&gt;GHTK&lt;br/&gt;SPX&lt;br/&gt;VIETTEL_POST&lt;br/&gt;JT&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=10;fontFamily=Helvetica;html=1;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="868" y="1045" width="195" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="enum_sentiment" value="&lt;p style=&quot;margin:0px;padding:3px;text-align:center;&quot;&gt;«enumeration»&lt;br/&gt;&lt;b&gt;Sentiment&lt;/b&gt;&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;POS (Tích cực)&lt;br/&gt;NEU (Trung lập)&lt;br/&gt;NEG (Tiêu cực)&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=10;fontFamily=Helvetica;html=1;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1075" y="1045" width="195" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="enum_mediatype" value="&lt;p style=&quot;margin:0px;padding:3px;text-align:center;&quot;&gt;«enumeration»&lt;br/&gt;&lt;b&gt;MediaType&lt;/b&gt;&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;image (Ảnh)&lt;br/&gt;video (Video)&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=10;fontFamily=Helvetica;html=1;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1282" y="1045" width="195" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="enum_transactiontype" value="&lt;p style=&quot;margin:0px;padding:3px;text-align:center;&quot;&gt;«enumeration»&lt;br/&gt;&lt;b&gt;TransactionType&lt;/b&gt;&lt;/p&gt;&lt;hr style=&quot;margin:0;&quot;/&gt;&lt;p style=&quot;margin:4px 6px;line-height:1.3;&quot;&gt;DEPOSIT (Nạp tiền)&lt;br/&gt;PAYMENT (Thanh toán)&lt;/p&gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=10;fontFamily=Helvetica;html=1;strokeWidth=1;fillColor=#FFFFFF;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1489" y="1045" width="195" height="130" as="geometry" />
+        </mxCell>
+
+        <!-- ===================== ĐƯỜNG NỐI (đường thẳng, không bội số) ===================== -->
+
+        <!-- User - Wallet -->
+        <mxCell id="e_u_w" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;endArrow=none;strokeColor=#000000;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="user" target="wallet">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Wallet - Transaction -->
+        <mxCell id="e_w_t" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;endArrow=none;strokeColor=#000000;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="wallet" target="transaction">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- User - Favorite -->
+        <mxCell id="e_u_fav" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;endArrow=none;strokeColor=#000000;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;exitX=0.75;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="user" target="favorite">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="220" y="125" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- User - Cart -->
+        <mxCell id="e_u_cart" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;endArrow=none;strokeColor=#000000;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;exitX=1;exitY=0.875;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="user" target="cart">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="320" y="520" />
+              <mxPoint x="320" y="680" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- User - Product (created_by) -->
+        <mxCell id="e_u_p" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;endArrow=none;strokeColor=#000000;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;exitX=1;exitY=0.1875;exitDx=0;exitDy=0;entryX=0;entryY=0.1875;entryDx=0;entryDy=0;" edge="1" parent="1" source="user" target="product">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_u_p_m" value="created_by" style="edgeLabel;html=1;fontSize=10;fontStyle=2;fontColor=#000000;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="e_u_p">
+          <mxGeometry x="0" relative="1" as="geometry"><mxPoint x="0" y="-10" as="offset" /></mxGeometry>
+        </mxCell>
+
+        <!-- User - Order -->
+        <mxCell id="e_u_o" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;endArrow=none;strokeColor=#000000;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.2885;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="user" target="order">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="160" y="32" />
+              <mxPoint x="1105" y="32" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- User - Review -->
+        <mxCell id="e_u_r" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;endArrow=none;strokeColor=#000000;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;exitX=0.25;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="user" target="review">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="100" y="15" />
+              <mxPoint x="1500" y="15" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Cart - CartItem -->
+        <mxCell id="e_c_ci" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;endArrow=none;strokeColor=#000000;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="cart" target="cartitem">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- CartItem - Product -->
+        <mxCell id="e_ci_p" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;endArrow=none;strokeColor=#000000;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.8125;entryDx=0;entryDy=0;" edge="1" parent="1" source="cartitem" target="product">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="660" y="880" />
+              <mxPoint x="660" y="500" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Favorite - Product -->
+        <mxCell id="e_fav_p" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;endArrow=none;strokeColor=#000000;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.0625;entryDx=0;entryDy=0;" edge="1" parent="1" source="favorite" target="product">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="645" y="125" />
+              <mxPoint x="645" y="260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Category - Product -->
+        <mxCell id="e_cat_p" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;endArrow=none;strokeColor=#000000;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="category" target="product">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Product - ProductImage -->
+        <mxCell id="e_p_pi" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;endArrow=none;strokeColor=#000000;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="product" target="productimage">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Product - GlassesOverlay -->
+        <mxCell id="e_p_go" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;endArrow=none;strokeColor=#000000;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;exitX=1;exitY=0.9375;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="product" target="glassesoverlay">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="965" y="540" />
+              <mxPoint x="965" y="880" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Order - OrderItem -->
+        <mxCell id="e_o_oi" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;endArrow=none;strokeColor=#000000;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="order" target="orderitem">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- OrderItem - Product -->
+        <mxCell id="e_oi_p" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;endArrow=none;strokeColor=#000000;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.8125;entryDx=0;entryDy=0;" edge="1" parent="1" source="orderitem" target="product">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="990" y="680" />
+              <mxPoint x="990" y="500" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- OrderItem - Review -->
+        <mxCell id="e_oi_r" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;endArrow=none;strokeColor=#000000;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.7778;entryDx=0;entryDy=0;" edge="1" parent="1" source="orderitem" target="review">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1335" y="680" />
+              <mxPoint x="1335" y="380" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Review - Product -->
+        <mxCell id="e_r_p" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;endArrow=none;strokeColor=#000000;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;exitX=0;exitY=0.1667;exitDx=0;exitDy=0;entryX=0.84;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="review" target="product">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1350" y="270" />
+              <mxPoint x="1350" y="215" />
+              <mxPoint x="900" y="215" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Review - ReviewMedia -->
+        <mxCell id="e_r_rm" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;endArrow=none;strokeColor=#000000;strokeWidth=1.5;jumpStyle=arc;jumpSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="review" target="reviewmedia">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

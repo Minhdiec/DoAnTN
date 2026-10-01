@@ -1,0 +1,39 @@
+{% comment %}
+Modal "Thử kính ảo" dùng chung cho trang chủ, tìm kiếm, yêu thích và chi tiết
+sản phẩm. Mở bằng bất kỳ nút [data-tryon-open] nào trên trang (static/js/tryon.js).
+Cần biến: tryon_gallery (toàn bộ GlassesOverlay), active_glasses_id (tuỳ chọn).
+{% endcomment %}
+<div class="tryon-modal" id="tryon-modal" hidden>
+    <div class="tryon-modal-backdrop" data-tryon-close></div>
+    <div class="tryon-modal-panel" role="dialog" aria-modal="true" aria-labelledby="tryon-modal-title">
+        <div class="tryon-modal-header">
+            <h2 id="tryon-modal-title">Thử kính ảo{% if tryon_title %} - {{ tryon_title }}{% endif %}</h2>
+            <button type="button" class="tryon-close" data-tryon-close aria-label="Đóng">&times;</button>
+        </div>
+        <div class="tryon-modal-body">
+            <div class="tryon-camera">
+                <video id="tryon-video" autoplay playsinline muted hidden></video>
+                <canvas id="tryon-canvas-capture" hidden></canvas>
+                <img id="tryon-output" alt="Hình ảnh thử kính ảo qua webcam" hidden>
+                <div class="tryon-placeholder" id="tryon-placeholder">
+                    <p id="tryon-placeholder-text">Đang mở camera…</p>
+                    <button type="button" class="btn btn-primary" id="tryon-retry" hidden>Thử lại</button>
+                </div>
+                <div class="tryon-status" id="tryon-status" hidden></div>
+            </div>
+            <div class="tryon-sidebar">
+                <div class="tryon-gallery">
+                    <h3>Chọn mẫu kính</h3>
+                    <div class="tryon-gallery-list">
+                        {% for g in tryon_gallery %}
+                            <button type="button" class="tryon-gallery-item{% if g.id == active_glasses_id %} is-active{% endif %}" data-glasses-id="{{ g.id }}" data-product-name="{{ g.product.name }}">
+                                <img src="{{ g.image.url }}" alt="{{ g.product.name }}" loading="lazy">
+                                <span>{{ g.product.name }}</span>
+                            </button>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

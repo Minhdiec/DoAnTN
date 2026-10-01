@@ -86,12 +86,17 @@ Toàn bộ nằm ở `tryon/consumers.py` (docstring đầu file gọi đây là
 
 ## Phần 2: Phân tích cảm xúc bình luận (Sentiment Analysis)
 
-### 2.1. Hai file `.ipynb` trong dự án — file nào làm gì
+### 2.1. Các file liên quan — file nào làm gì
 
-Dự án có đúng 2 file notebook, mục đích khác hẳn nhau:
+| File | Vai trò |
+|---|---|
+| `phantichcamxuc/data - data.csv` | **Dataset gốc** — 31.460 bình luận đã gán nhãn POS/NEU/NEG, dùng để huấn luyện. |
+| `phantichcamxuc/sentiment_analysis.ipynb` | **Notebook huấn luyện** — đọc dataset ở trên, làm sạch, tách từ, vector hoá, huấn luyện và so sánh mô hình, xuất ra file model bên dưới. |
+| `phantichcamxuc/sentiment_model.joblib` | **Model đã huấn luyện xong** — file nhị phân do notebook trên xuất ra (`vectorizer` + `model` đóng gói chung), không tự đọc/sửa bằng tay. |
+| `reviews/ml/sentiment.py` | **Code chạy thật trên website** — nạp `sentiment_model.joblib`, chép lại đúng hàm `predict_sentiment()` đã viết và kiểm tra trong notebook. |
+| `BUG.ipynb` (thư mục gốc) | **Không liên quan đến dữ liệu hay huấn luyện.** Đây là nhật ký các yêu cầu sửa lỗi/chỉnh giao diện kèm ảnh chụp màn hình (ví dụ lỗi hiển thị số sao, lỗi nút giỏ hàng, yêu cầu đổi câu banner...) dùng để giao việc sửa lỗi trong lúc phát triển — không chứa dữ liệu bình luận hay code huấn luyện mô hình nào. |
 
-- **`phantichcamxuc/sentiment_analysis.ipynb`** — notebook **huấn luyện mô hình thật**, chính là nguồn cho mọi nội dung ở Phần 2 này.
-- **`BUG.ipynb`** (thư mục gốc) — **không liên quan đến dữ liệu hay huấn luyện**. Đọc nội dung thì đây là nhật ký các yêu cầu sửa lỗi/chỉnh giao diện kèm ảnh chụp màn hình (ví dụ lỗi hiển thị số sao, lỗi nút giỏ hàng, yêu cầu đổi câu banner...) được dùng để giao việc sửa lỗi trong lúc phát triển — không chứa dữ liệu bình luận hay code huấn luyện mô hình nào.
+Dự án chỉ có 2 file `.ipynb`; bảng trên phân biệt rõ file nào là notebook huấn luyện thật (`sentiment_analysis.ipynb`) và file nào không liên quan (`BUG.ipynb`).
 
 ### 2.2. Bộ dữ liệu và cách làm sạch
 
@@ -107,7 +112,16 @@ Dự án có đúng 2 file notebook, mục đích khác hẳn nhau:
 
 Dùng `underthesea.word_tokenize(text, format="text")` để tách từ, ghép từ ghép bằng dấu `_` (ví dụ `"chất lượng"` → `"chất_lượng"`), giúp bước vector hoá TF-IDF hiểu đúng đơn vị từ tiếng Việt thay vì tách rời từng âm tiết. **Bước này bắt buộc giống hệt lúc dự đoán thật** — nếu khác, câu mới sẽ bị vector hoá lệch không gian đặc trưng so với lúc train.
 
-### 2.4. Huấn luyện mô hình
+### 2.4. Notebook huấn luyện đã nâng cấp gì so với bản mẫu ban đầu
+
+Bản thân `sentiment_analysis.ipynb` tự ghi lại trong các ô markdown của nó những chỗ đã sửa/thêm so với "notebook mẫu ban đầu" (bản mẫu là điểm xuất phát ban đầu để làm theo, không phải một file còn lưu riêng trong repo). Bốn chỗ nâng cấp, trích lại đúng như notebook tự ghi:
+
+1. **Bỏ `stop_words="english"`.** Notebook mẫu ban đầu dùng danh sách từ dừng tiếng Anh khi vector hoá — vô nghĩa với dữ liệu tiếng Việt. Notebook hiện tại bỏ hẳn tham số này.
+2. **Thêm bước loại bình luận trùng lặp trước khi chia train/test.** Notebook mẫu ban đầu chưa xử lý: dữ liệu gốc có nhiều câu giống hệt nhau (mẫu câu soạn sẵn của shop), nếu không loại bỏ thì cùng một câu có thể vừa nằm ở tập train vừa ở tập test, khiến kết quả đánh giá bị ảo (data leakage). Notebook hiện tại bỏ 4.754 dòng trùng lặp (31.460 → 26.706 dòng) trước khi chia tập.
+3. **So sánh 3 mô hình thay vì chỉ 1.** Yêu cầu ban đầu chỉ cần "một số mô hình như Logistic Regression"; notebook huấn luyện và so sánh thật cả `LogisticRegression`, `ComplementNB`, `LinearSVC` (qua `CalibratedClassifierCV` để có xác suất dự đoán).
+4. **Chọn mô hình theo macro-F1 thay vì accuracy thô.** Dữ liệu lệch lớp (POS chiếm 60,5%) nên accuracy dễ bị lớp đa số áp đảo, che khuất việc mô hình dự đoán kém ở lớp NEU (khó nhất, ít dữ liệu nhất). Mô hình được chọn cuối cùng (Logistic Regression, macro-F1 0,648) **không phải** mô hình có accuracy cao nhất trong 3 mô hình (LinearSVC đạt accuracy 0,762) — chọn theo macro-F1 vì nó phản ánh đúng độ cân bằng giữa 3 lớp hơn.
+
+### 2.5. Huấn luyện mô hình
 
 - Chia tập: 80% train / 20% test, **giữ tỉ lệ nhãn** (`stratify=y`) → Train 21.364 / Test 5.342 dòng.
 - Vector hoá: `TfidfVectorizer(ngram_range=(1,2), min_df=3, max_features=30000, sublinear_tf=True)` → 10.181 đặc trưng (giữ cả cụm 2 từ để phân biệt phủ định như `"không đẹp"`).
@@ -122,7 +136,7 @@ Dùng `underthesea.word_tokenize(text, format="text")` để tách từ, ghép t
 
 - Kết quả được lưu vào **`phantichcamxuc/sentiment_model.joblib`** — một dict gồm `{"vectorizer": ..., "model": ...}` (bắt buộc lưu chung, vì lúc dự đoán phải dùng đúng `vectorizer` đã fit ở bước train để ra cùng không gian đặc trưng).
 
-### 2.5. Đưa vào website — chuyện gì xảy ra khi khách gửi đánh giá
+### 2.6. Đưa vào website — chuyện gì xảy ra khi khách gửi đánh giá
 
 Hàm `predict_sentiment()` ở notebook được chép gần như nguyên vẹn sang **`reviews/ml/sentiment.py`** (chỉ khác: nạp model một lần và cache lại bằng `@lru_cache`, tránh đọc lại file `.joblib` mỗi lần có đánh giá mới).
 

@@ -1,10 +1,9 @@
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg, Case, Count, IntegerField, Q, Value, When
 from django.shortcuts import get_object_or_404, render
 
 from favorites.models import Favorite
 from orders.models import Order, OrderItem
 from reviews.forms import ReviewForm
-from reviews.models import Review
 from tryon.models import GlassesOverlay
 
 from .models import Category, Product
@@ -18,6 +17,27 @@ def _favorite_product_ids(request):
         return set()
     favorite = Favorite.objects.filter(user=request.user).first()
     return set(favorite.products.values_list("id", flat=True)) if favorite else set()
+
+
+PINNED_TRYON_SLUGS = ["dublin", "mythic-gold-blue-light-lens", "incantation-black"]
+
+
+def tryon_gallery():
+    # Danh sách mẫu kính có ảnh AR (sản phẩm đang bán) cho modal thử kính ảo
+    # dùng chung (products/_tryon_modal.html) - trang chủ, tìm kiếm, yêu
+    # thích, chi tiết sản phẩm đều gọi hàm này.
+    # 3 mẫu kính có thử kính từ đầu (Dublin, Mythic, Incantation) luôn đứng
+    # đầu danh sách, các mẫu nhập sau xếp theo tên.
+    pinned = Case(
+        *[When(product__slug=slug, then=Value(i)) for i, slug in enumerate(PINNED_TRYON_SLUGS)],
+        default=Value(len(PINNED_TRYON_SLUGS)),
+        output_field=IntegerField(),
+    )
+    return (
+        GlassesOverlay.objects.filter(product__is_active=True)
+        .select_related("product")
+        .order_by(pinned, "product__name")
+    )
 
 
 def home(request):
@@ -37,7 +57,7 @@ def home(request):
 
     featured_products = (
         Product.objects.filter(is_active=True)
-        .select_related("category")
+        .select_related("category", "glasses_overlay")
         .order_by("-created_at")
     )
     context = {
@@ -45,6 +65,7 @@ def home(request):
         "featured_products": featured_products,
         "gender_choices": Product.Gender.choices,
         "favorite_product_ids": _favorite_product_ids(request),
+        "tryon_gallery": tryon_gallery(),
     }
     return render(request, "products/home.html", context)
 
@@ -109,20 +130,26 @@ def detail(request, slug):
             "negative_percent": round(stats["negative"] / rating_total * 100),
         }
 
-    # Ô nhập bình luận/đánh giá CHỈ hiện khi: đã đăng nhập + đã mua sản phẩm
-    # này qua một đơn đã GIAO THÀNH CÔNG + chưa đánh giá sản phẩm này lần
-    # nào (mỗi sản phẩm đã mua chỉ đánh giá được 1 lần).
+    # Ô nhập bình luận/đánh giá CHỈ hiện khi: đã đăng nhập + có một dòng sản
+    # phẩm này trong đơn đã GIAO THÀNH CÔNG mà dòng đó chưa được đánh giá
+    # (mỗi dòng sản phẩm của mỗi đơn đánh giá được 1 lần). Bấm "Đánh giá" từ
+    # trang Đơn hàng của tôi sẽ truyền ?item=<order_item_id> để đánh giá đúng
+    # đơn đó; không có thì lấy đơn đã giao gần nhất chưa đánh giá.
     can_review = False
     review_order_item = None
     if request.user.is_authenticated:
-        already_reviewed = Review.objects.filter(user=request.user, product=product).exists()
-        if not already_reviewed:
-            review_order_item = OrderItem.objects.filter(
-                order__user=request.user,
-                order__status=Order.Status.DELIVERED,
-                product=product,
-            ).first()
-            can_review = review_order_item is not None
+        reviewable_items = OrderItem.objects.filter(
+            order__user=request.user,
+            order__status=Order.Status.DELIVERED,
+            product=product,
+            review__isnull=True,
+        ).order_by("-order__created_at")
+        item_id = request.GET.get("item")
+        if item_id and item_id.isdigit():
+            review_order_item = reviewable_items.filter(pk=item_id).first()
+        if review_order_item is None:
+            review_order_item = reviewable_items.first()
+        can_review = review_order_item is not None
 
     context = {
         "product": product,
@@ -133,7 +160,7 @@ def detail(request, slug):
         # trong gallery bên trong khu vực thử kính để người dùng so sánh
         # được nhiều mẫu khác nhau ngay trên 1 trang sản phẩm, giống hệt
         # GlassesPicker của prototype (CLAUDE_PROGRESS.md mục 20/22).
-        "tryon_gallery": GlassesOverlay.objects.select_related("product").all(),
+        "tryon_gallery": tryon_gallery(),
         "reviews": reviews,
         "rating_average": round(stats["average"], 1) if stats["average"] else 0,
         "rating_average_rounded": round(stats["average"]) if stats["average"] else 0,
@@ -155,7 +182,7 @@ def search(request):
     # kết quả tìm kiếm hoặc bấm nút Back của trình duyệt hoạt động đúng.
     query = request.GET.get("q", "").strip()
 
-    products = Product.objects.filter(is_active=True).select_related("category")
+    products = Product.objects.filter(is_active=True).select_related("category", "glasses_overlay")
     if query:
         products = products.filter(
             Q(name__icontains=query)
@@ -168,5 +195,6 @@ def search(request):
         "query": query,
         "products": products,
         "favorite_product_ids": _favorite_product_ids(request),
+        "tryon_gallery": tryon_gallery(),
     }
     return render(request, "products/search.html", context)
